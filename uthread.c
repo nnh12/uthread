@@ -384,15 +384,18 @@ uthr_init(void)
 	/*
 	 * SIGPROF_set must be initialized before calling uthr_lookup_symbol().
 	 */
-	// (Your code goes here.)
+	// Initialize SIGPORF_set to include SIGPROF
+	sigemptyset(&SIGPROF_set);
+	sigaddset(&SIGPROF_set, SIGPROF);
 
+	// (Your code goes here.)
 	uthr_lookup_symbol((void *)&mallocp, "malloc");
 	uthr_lookup_symbol((void *)&freep, "free");
 
 	/*
 	 * Initialize the scheduler context using the above sched_stack.
 	 */
-	// (Your code goes here.)
+	
 
 	/*
 	 * Initialize the currently running thread and insert it at the tail
@@ -414,11 +417,22 @@ uthr_init(void)
 	 * Set up the SIGPROF signal handler.
 	 */
 	// (Your code goes here.)
+	struct sigaction sa = {
+		.sa_handler = uthr_timer_handler,
+		.sa_flags = SA_RESTART | SA_SIGINFO
+	};
+	sigemptyset(&sa.sa_mask);
+	if (sigaction(SIGPROF, &sa, NULL) == -1) {
+		uthr_exit_errno("sigaction");
+	}
+		
 	 
 	/*
 	 * Configure the interval timer for thread scheduling.
 	 */
-	// (Your code goes here.)
+	if (setitimer(ITIMER_PROF, &quantum, NULL) == -1) {
+		uthr_exit_errno("setitimer");	
+	}
 }
 
 void
