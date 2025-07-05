@@ -19,6 +19,7 @@ static void
 unix_set_fd_NONBLOCK(int fd)
 {
 	// (Your code goes here.)
+	(void) fd;
 }
 
 /**
@@ -60,10 +61,13 @@ int
 accept(int s, struct sockaddr *addr, socklen_t *addrlen)
 {
 	static int (*acceptp)(int, struct sockaddr *, socklen_t *);
-	int s_conn;
+	int s_conn = 0;
 
 	// (Your code goes here.)
-
+	(void) s;
+	(void) addr;
+	(void) addrlen;
+	(void) acceptp;
 	return (s_conn);
 }
 
@@ -81,10 +85,13 @@ ssize_t
 read(int fd, void *buf, size_t count)
 {
 	static int (*readp)(int, void *, size_t);
-	int rc;
+	int rc = 0;
 
 	// (Your code goes here.)
-
+	(void) fd;
+	(void) buf;
+	(void) count;
+	(void) readp;
 	return (rc);
 }
 
@@ -102,9 +109,12 @@ ssize_t
 write(int fd, const void *buf, size_t count)
 {
 	static int (*writep)(int, const void *, size_t);
-	int rc;
+	int rc = 0;
 
 	// (Your code goes here.)
-
+	(void) fd;
+	(void) buf;
+	(void) count;
+	(void) writep;
 	return (rc);
 }

@@ -51,10 +51,10 @@ static struct uthr {
 /**
  * These are the thread queues that are managed by the uthread scheduler.
  */
-static struct uthr runq;
-static struct uthr blockedq;
-static struct uthr reapq;
-static struct uthr freeq;
+//static struct uthr runq;
+//static struct uthr blockedq;
+//static struct uthr reapq;
+//static struct uthr freeq;
 
 /**
  * This is the currently running thread.
@@ -86,7 +86,7 @@ static sigset_t SIGPROF_set;
 static void *(*mallocp)(size_t);
 static void (*freep)(void *);
 
-static void uthr_scheduler(void);
+//static void uthr_scheduler(void);
 
 /**
  * This function checks the current signal mask to ensure that the SIGPROF
@@ -110,12 +110,14 @@ void
 uthr_block_SIGPROF(sigset_t *old_setp)
 {
 	// (Your code goes here.)
+	(void) old_setp;
 }
 
 void
 uthr_set_sigmask(const sigset_t *setp)
 {
 	// (Your code goes here.)
+	(void) setp;
 }
 
 void *
@@ -142,18 +144,18 @@ uthr_intern_free(void *ptr)
  *
  * @param td Pointer to the thread to be transitioned to zombie state.
  */
-static void
-uthr_to_zombie(struct uthr *td)
-{
-	uthr_assert_SIGPROF_blocked();
-	assert(td->state == UTHR_RUNNABLE);
-	if (td->joiner != NULL) {
-		assert(!td->detached);
-                assert(td->joiner->state == UTHR_JOINING);
-	}
+// static void
+// uthr_to_zombie(struct uthr *td)
+// {
+// 	uthr_assert_SIGPROF_blocked();
+// 	assert(td->state == UTHR_RUNNABLE);
+// 	if (td->joiner != NULL) {
+// 		assert(!td->detached);
+//                 assert(td->joiner->state == UTHR_JOINING);
+// 	}
 
-	// (Your code goes here.)
-}
+// 	// (Your code goes here.)
+// }
 
 /**
  * Frees the resources associated with a thread and transitions it to the free
@@ -165,14 +167,15 @@ uthr_to_zombie(struct uthr *td)
  *
  * @param td A pointer to the thread to be freed.
  */
-static void
-uthr_to_free(struct uthr *td)
-{
-	uthr_assert_SIGPROF_blocked();
-	assert(td->state == UTHR_ZOMBIE);
+// static void
+// uthr_to_free(struct uthr *td)
+// {
+// 	uthr_assert_SIGPROF_blocked();
+// 	assert(td->state == UTHR_ZOMBIE);
 
-	// (Your code goes here.)
-}
+// 	// (Your code goes here.)
+// 	(void)td;
+// }
 
 /**
  * This function is responsible for starting the execution of a user-level
@@ -185,32 +188,37 @@ uthr_to_free(struct uthr *td)
  *
  * @param tidx The index of the thread to start.
  */
-static void
-uthr_start(int tidx)
-{
-	sigset_t old_set;
+// static void
+// uthr_start(int tidx)
+// {
+// 	sigset_t old_set;
 
-	uthr_assert_SIGPROF_blocked();
-	struct uthr *td = &uthr_array[tidx];
-	assert(td->state == UTHR_RUNNABLE);
+// 	uthr_assert_SIGPROF_blocked();
+// 	struct uthr *td = &uthr_array[tidx];
+// 	assert(td->state == UTHR_RUNNABLE);
 
-	/*
-	 * Before running the thread's start routine, SIGPROF signals must be
-	 * unblocked so that the thread can be preempted if it runs for too
-	 * long without blocking.
-	 */
-	if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, &old_set) == -1)
-		uthr_exit_errno("sigprocmask");
-	assert(sigismember(&old_set, SIGPROF));
+// 	/*
+// 	 * Before running the thread's start routine, SIGPROF signals must be
+// 	 * unblocked so that the thread can be preempted if it runs for too
+// 	 * long without blocking.
+// 	 */
+// 	if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, &old_set) == -1)
+// 		uthr_exit_errno("sigprocmask");
+// 	assert(sigismember(&old_set, SIGPROF));
 
-	// (Your code goes here.)
-}
+// 	// (Your code goes here.)
+// 	(void) tidx;
+// }
 
 int
 pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
     void *(*start_routine)(void *restrict), void *restrict argp)
 {
 	// (Your code goes here.)
+	(void) tidp;
+    	(void) attrp;
+    	(void) start_routine;
+    	(void) argp;
 	return (0);
 }
 
@@ -218,6 +226,7 @@ int
 pthread_detach(pthread_t tid)
 {
 	// (Your code goes here.)
+	(void) tid;
 	return (0);
 }
 
@@ -238,12 +247,15 @@ pthread_exit(void *retval)
 	 * function's implementation never returns.
 	 */
 	for (;;);
+	(void) retval;
 }
 
 int
 pthread_join(pthread_t tid, void **retval)
 {
 	// (Your code goes here.)
+	(void) tid;
+	(void) retval;
 	return (0);
 }
 
@@ -304,15 +316,16 @@ uthr_block_on_fd(int fd, enum uthr_op op)
  *             to become ready.  If false, the function will return immediately
  *             if no file descriptors are ready.
  */
-static void
-uthr_check_blocked(bool wait)
-{
-	struct timeval timeout = { 0, 0 }, *timeoutp = wait ? NULL : &timeout;
+// static void
+// uthr_check_blocked(bool wait)
+// {
+// 	struct timeval timeout = { 0, 0 }, *timeoutp = wait ? NULL : &timeout;
+// 	(void) timeoutp;
+// 	(void) timeout;
+// 	uthr_assert_SIGPROF_blocked();
 
-	uthr_assert_SIGPROF_blocked();
-
-	// (Your code goes here.)
-}
+// 	// (Your code goes here.)
+// }
 
 /**
  * Scheduler function for user-level threads.
@@ -326,16 +339,16 @@ uthr_check_blocked(bool wait)
  *
  * This function runs in an infinite loop and does not return.
  */
-static void
-uthr_scheduler(void)
-{
-	uthr_assert_SIGPROF_blocked();
-	for (;;) {
+// static void
+// uthr_scheduler(void)
+// {
+// 	uthr_assert_SIGPROF_blocked();
+// 	for (;;) {
 
-		// (Your code goes here.)
+// 		// (Your code goes here.)
 
-	}
-}
+// 	}
+// }
 
 /**
  * Timer (SIGPROF) signal handler for user-level threads.
@@ -380,6 +393,7 @@ static void
 uthr_init(void)
 {
 	static char sched_stack[UTHR_STACK_SIZE];
+	(void) sched_stack;
 
 	/*
 	 * SIGPROF_set must be initialized before calling uthr_lookup_symbol().
@@ -453,7 +467,8 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
 		 */
 		// (Your code goes here.)
 	}
-
+	
+	(void) symbol;
 	// (Your code goes here.)
 }
 
