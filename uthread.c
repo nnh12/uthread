@@ -51,7 +51,7 @@ static struct uthr {
 /**
  * These are the thread queues that are managed by the uthread scheduler.
  */
-//static struct uthr runq;
+static struct uthr runq;
 //static struct uthr blockedq;
 //static struct uthr reapq;
 static struct uthr freeq;
@@ -188,39 +188,88 @@ uthr_intern_free(void *ptr)
  *
  * @param tidx The index of the thread to start.
  */
-// static void
-// uthr_start(int tidx)
-// {
-// 	sigset_t old_set;
+static void
+uthr_start(int tidx) 
+{
+ 	sigset_t old_set;
 
-// 	uthr_assert_SIGPROF_blocked();
-// 	struct uthr *td = &uthr_array[tidx];
-// 	assert(td->state == UTHR_RUNNABLE);
+ 	uthr_assert_SIGPROF_blocked();
+ 	struct uthr *td = &uthr_array[tidx];
+ 	assert(td->state == UTHR_RUNNABLE);
 
-// 	/*
-// 	 * Before running the thread's start routine, SIGPROF signals must be
-// 	 * unblocked so that the thread can be preempted if it runs for too
-// 	 * long without blocking.
-// 	 */
-// 	if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, &old_set) == -1)
-// 		uthr_exit_errno("sigprocmask");
-// 	assert(sigismember(&old_set, SIGPROF));
+ 	/*
+ 	 * Before running the thread's start routine, SIGPROF signals must be
+ 	 * unblocked so that the thread can be preempted if it runs for too
+ 	 * long without blocking.
+ 	 */
+ 	if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, &old_set) == -1)
+		uthr_exit_errno("sigprocmask");
+	assert(sigismember(&old_set, SIGPROF));
 
-// 	// (Your code goes here.)
-// 	(void) tidx;
-// }
+	// (Your code goes here.)
+ 	(void) tidx;
+}
 
 int
 pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
     void *(*start_routine)(void *restrict), void *restrict argp)
 {
+
+        struct uthr *td = NULL;
+
 	// (Your code goes here.)
-	(void) tidp;
-    	(void) attrp;
-    	(void) start_routine;
-    	(void) argp;
-	printf("hello");
-	return (0);
+	for (volatile long i = 0; i < NUTHR; i++) {
+	    if (uthr_array[i].state == UTHR_FREE) {
+                td = &uthr_array[i];
+		break;
+	     }
+        }
+
+	if (td == NULL) {
+            errno = EAGAIN;
+	    return -1;
+	}
+
+
+	td->state = UTHR_RUNNABLE;
+	td->start_routine = start_routine;
+	td->argp = argp;
+	td->ret_val = NULL;
+	td->detached = false;
+	td->joiner = NULL;
+
+	td->stack_base = uthr_intern_malloc(UTHR_STACK_SIZE);
+        if (td->stack_base == NULL) {
+            errno = ENOMEM;
+	    return -1;
+	}
+
+	if (getcontext(&td->uctx) == -1) {
+            uthr_intern_free(td->stack_base);
+	    errno = EFAULT;
+	    return -1;
+	}
+
+       td->uctx.uc_stack.ss_sp = td->stack_base;
+       td->uctx.uc_stack.ss_size = UTHR_STACK_SIZE;
+       td->uctx.uc_link = &sched_uctx; // Link to the scheduler context
+
+       // Set the thread's start routine
+       makecontext(&td->uctx, (void (*)(void))uthr_start, 1, (int)(td - uthr_array));
+
+       // Insert the thread into the run queue
+       td->next = runq.next;
+       if (runq.next != NULL) {
+           runq.next->prev = td;
+       }
+       runq.next = td;
+       td->prev = &runq;
+
+       // Return the thread ID
+       *tidp = td - uthr_array;
+
+
+	return *tidp;
 }
 
 int
@@ -425,6 +474,7 @@ uthr_init(void)
 	freeq.next = NULL;
 	struct uthr *prev = &freeq;
 
+	// Initialize queue of free threads
 	printf("uthr_init function");
 	for (int i = 1; i < NUTHR; i++) {
 	    uthr_array[i].state = UTHR_FREE;
@@ -435,10 +485,6 @@ uthr_init(void)
 	    prev = &uthr_array[i];
 	}
 
-	/*
-	 * Initialize the queue of free threads.  Skip zero, which is already
-	 * running.
-	 */
 	// (Your code goes here.)
 	 
 	uthr_init_fd_state();
