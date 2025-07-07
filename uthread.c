@@ -54,7 +54,7 @@ static struct uthr {
 //static struct uthr runq;
 //static struct uthr blockedq;
 //static struct uthr reapq;
-//static struct uthr freeq;
+static struct uthr freeq;
 
 /**
  * This is the currently running thread.
@@ -219,6 +219,7 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
     	(void) attrp;
     	(void) start_routine;
     	(void) argp;
+	printf("hello");
 	return (0);
 }
 
@@ -417,7 +418,22 @@ uthr_init(void)
 	 */
 	curr_uthr = &uthr_array[0];
 	curr_uthr->state = UTHR_RUNNABLE;
-	// (Your code goes here.)
+	curr_uthr->stack_base = NULL;
+	curr_uthr->prev = NULL;
+        curr_uthr->next = NULL;
+
+	freeq.next = NULL;
+	struct uthr *prev = &freeq;
+
+	printf("uthr_init function");
+	for (int i = 1; i < NUTHR; i++) {
+	    uthr_array[i].state = UTHR_FREE;
+	    uthr_array[i].stack_base = NULL;
+	    uthr_array[i].prev = prev;
+	    uthr_array[i].next = NULL;
+	    prev->next = &uthr_array[i];
+	    prev = &uthr_array[i];
+	}
 
 	/*
 	 * Initialize the queue of free threads.  Skip zero, which is already

@@ -19,11 +19,13 @@ void *
 malloc(size_t size)
 {
 	sigset_t old_set;
-
-	uthr_block_SIGPROF(&old_set);
-	void *ptr = uthr_intern_malloc(size);
-	uthr_set_sigmask(&old_set);
-	return (ptr);
+	
+        (void) old_set;
+	(void) size;
+	//uthr_block_SIGPROF(&old_set);
+	//void *ptr = uthr_intern_malloc(size);
+	//uthr_set_sigmask(&old_set);
+	return 0;
 }
 
 /**
@@ -35,10 +37,12 @@ void
 free(void *ptr)
 {
 	sigset_t old_set;
-
-	uthr_block_SIGPROF(&old_set);
-	uthr_intern_free(ptr);
-	uthr_set_sigmask(&old_set);
+	
+	(void) ptr;	
+	(void) old_set;
+	//uthr_block_SIGPROF(&old_set);
+	//uthr_intern_free(ptr);
+	//uthr_set_sigmask(&old_set);
 }
 
 /**
