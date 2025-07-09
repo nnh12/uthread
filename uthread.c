@@ -99,18 +99,25 @@ static void uthr_scheduler(void);
 static void
 uthr_assert_SIGPROF_blocked(void)
 {
+        
+	printf("uthr_assert_sigprof_blocked \n");
 	sigset_t old_set;
 
-	if (sigprocmask(SIG_BLOCK, NULL, &old_set) == -1)
-		uthr_exit_errno("sigprocmask");
-	assert(sigismember(&old_set, SIGPROF));
+        if (sigismember(&old_set, SIGPROF)) {
+            printf("SIG PROF is currently blocked. \n");
+        } else {
+            printf("SIG PROF is not blocked. \n");
+            uthr_exit_errno("SIGPROF is not blocked. \n");
+        }   
 }
 
 void
 uthr_block_SIGPROF(sigset_t *old_setp)
 {
 	// (Your code goes here.)
-	(void) old_setp;
+	if (sigprocmask(SIG_BLOCK, &SIGPROF_set, old_setp) == -1) {
+            uthr_exit_errno("sigprocmask");
+        }
 }
 
 void
@@ -493,8 +500,7 @@ uthr_init(void)
 	    prev = &uthr_array[i];
 	}
 
-	// (Your code goes here.)
-	 
+	// (Your code goes here.)	 
 	uthr_init_fd_state();
 
 	/*
