@@ -86,7 +86,7 @@ static sigset_t SIGPROF_set;
 static void *(*mallocp)(size_t);
 static void (*freep)(void *);
 
-//static void uthr_scheduler(void);
+static void uthr_scheduler(void);
 
 /**
  * This function checks the current signal mask to ensure that the SIGPROF
@@ -123,6 +123,7 @@ uthr_set_sigmask(const sigset_t *setp)
 void *
 uthr_intern_malloc(size_t size)
 {
+        printf("uthr_intern_malloc \n");
 	uthr_assert_SIGPROF_blocked();
 	return (mallocp(size));
 }
@@ -214,9 +215,10 @@ int
 pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
     void *(*start_routine)(void *restrict), void *restrict argp)
 {
-
+        
+        printf("pthread_create \n");
         struct uthr *td = NULL;
-
+        (void) attrp;
 	// (Your code goes here.)
 	for (volatile long i = 0; i < NUTHR; i++) {
 	    if (uthr_array[i].state == UTHR_FREE) {
@@ -269,7 +271,7 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
        *tidp = td - uthr_array;
 
 
-	return *tidp;
+	return 95;
 }
 
 int
@@ -389,16 +391,16 @@ uthr_block_on_fd(int fd, enum uthr_op op)
  *
  * This function runs in an infinite loop and does not return.
  */
-// static void
-// uthr_scheduler(void)
-// {
-// 	uthr_assert_SIGPROF_blocked();
-// 	for (;;) {
+static void
+uthr_scheduler(void)
+{
+ 	uthr_assert_SIGPROF_blocked();
+ 	for (;;) {
 
-// 		// (Your code goes here.)
+ 		// (Your code goes here.)
 
-// 	}
-// }
+ 	}
+}
 
 /**
  * Timer (SIGPROF) signal handler for user-level threads.
@@ -443,7 +445,8 @@ static void
 uthr_init(void)
 {
 	static char sched_stack[UTHR_STACK_SIZE];
-	(void) sched_stack;
+	printf("uthr_init function \n");
+
 
 	/*
 	 * SIGPROF_set must be initialized before calling uthr_lookup_symbol().
@@ -459,7 +462,13 @@ uthr_init(void)
 	/*
 	 * Initialize the scheduler context using the above sched_stack.
 	 */
-	
+        if (getcontext(&sched_uctx) == -1) {
+            uthr_exit_errno("getcontext");
+        }
+        sched_uctx.uc_stack.ss_sp = sched_stack;
+        sched_uctx.uc_stack.ss_size = UTHR_STACK_SIZE;
+        sched_uctx.uc_link = NULL;
+        makecontext(&sched_uctx, uthr_scheduler, 0);	
 
 	/*
 	 * Initialize the currently running thread and insert it at the tail
@@ -475,7 +484,6 @@ uthr_init(void)
 	struct uthr *prev = &freeq;
 
 	// Initialize queue of free threads
-	printf("uthr_init function");
 	for (int i = 1; i < NUTHR; i++) {
 	    uthr_array[i].state = UTHR_FREE;
 	    uthr_array[i].stack_base = NULL;
