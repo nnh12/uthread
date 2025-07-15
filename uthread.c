@@ -531,21 +531,32 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
 	/*
 	 * Block preemption because dlerror() may use a static buffer.
 	 */
-	// (Your code goes here.)
+        uthr_assert_SIGPROF_blocked();
 	 
 	/*
 	 * A concurrent lookup by another thread may have already set the
 	 * address.
 	 */
 	if (*addrp == NULL) {
-		/*
-		 * See the manual page for dlopen().
-		 */
-		// (Your code goes here.)
+	    /*
+            * See the manual page for dlopen().
+            */
+            void *handle = dlopen(NULL, RTLD_NOW);
+            if (handle == NULL) {
+                uthr_exit_errno(dlerror());
+            }
+        
+            *addrp = dlsym(handle, symbol);
+            const char *error = dlerror();
+           
+             if (error != NULL) {
+                 printf("error looking up symbol %s: %s\n", symbol, error);
+                 uthr_exit_errno("dlsym");
+             }
+
+	    
+             dlclose(handle);   
 	}
-	
-	(void) symbol;
-	// (Your code goes here.)
 }
 
 void
