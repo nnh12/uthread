@@ -100,10 +100,9 @@ static void
 uthr_assert_SIGPROF_blocked(void)
 {
         
-	printf("uthr_assert_sigprof_blocked \n");
-	sigset_t old_set;
+	printf("uthr_assert_sigprof_blocked \n");	
 
-        if (sigismember(&old_set, SIGPROF)) {
+        if (sigismember(&SIGPROF_set, SIGPROF)) {
             printf("SIG PROF is currently blocked. \n");
         } else {
             printf("SIG PROF is not blocked. \n");
@@ -114,10 +113,19 @@ uthr_assert_SIGPROF_blocked(void)
 void
 uthr_block_SIGPROF(sigset_t *old_setp)
 {
-	// (Your code goes here.)
+        printf("Blocking SIGPROF \n");
 	if (sigprocmask(SIG_BLOCK, &SIGPROF_set, old_setp) == -1) {
             uthr_exit_errno("sigprocmask");
         }
+}
+
+
+void 
+uthr_unblock_SIGPROF(sigset_t *old_setp)
+{
+       if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, old_setp) == -1) {
+           uthr_exit_errno("sigprocmask");
+       }
 }
 
 void
@@ -278,7 +286,7 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
        *tidp = td - uthr_array;
 
 
-	return 95;
+	return *tidp;
 }
 
 int
@@ -454,15 +462,14 @@ uthr_init(void)
 	static char sched_stack[UTHR_STACK_SIZE];
 	printf("uthr_init function \n");
 
-
 	/*
 	 * SIGPROF_set must be initialized before calling uthr_lookup_symbol().
 	 */
 	// Initialize SIGPORF_set to include SIGPROF
 	sigemptyset(&SIGPROF_set);
 	sigaddset(&SIGPROF_set, SIGPROF);
-
-	// (Your code goes here.)
+        uthr_block_SIGPROF(&SIGPROF_set);           
+ 
 	uthr_lookup_symbol((void *)&mallocp, "malloc");
 	uthr_lookup_symbol((void *)&freep, "free");
 
@@ -523,7 +530,11 @@ uthr_init(void)
 	if (setitimer(ITIMER_PROF, &quantum, NULL) == -1) {
 		uthr_exit_errno("setitimer");	
 	}
+
+        printf("end \n");
 }
+
+
 
 void
 uthr_lookup_symbol(void **addrp, const char *symbol)
@@ -531,8 +542,10 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
 	/*
 	 * Block preemption because dlerror() may use a static buffer.
 	 */
+        uthr_block_SIGPROF(&SIGPROF_set);
         uthr_assert_SIGPROF_blocked();
-	 
+        
+        printf("uthr look up \n");	 
 	/*
 	 * A concurrent lookup by another thread may have already set the
 	 * address.
@@ -557,6 +570,8 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
 	    
              dlclose(handle);   
 	}
+        printf("uthr look up symbol");
+        //uthr_unblock_SIGPROF(&old_set);
 }
 
 void
