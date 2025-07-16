@@ -231,7 +231,7 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
     void *(*start_routine)(void *restrict), void *restrict argp)
 {
         
-        printf("pthread_create \n");
+        printf("\n pthread_create \n");
         struct uthr *td = NULL;
         (void) attrp;
 	// (Your code goes here.)
@@ -284,8 +284,7 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
 
        // Return the thread ID
        *tidp = td - uthr_array;
-
-
+      
 	return *tidp;
 }
 
@@ -571,7 +570,7 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
              dlclose(handle);   
 	}
         printf("uthr look up symbol");
-        //uthr_unblock_SIGPROF(&old_set);
+       // uthr_unblock_SIGPROF(&SIGPROF_set);
 }
 
 void
