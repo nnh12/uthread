@@ -57,7 +57,7 @@ test_pthread_create_invalidattr(void)
 	pthread_attr_t attr;
 	int	       retval;
 
-	printf("TEST pthread_create - invalid settings in attr: ");
+      	printf("TEST pthread_create - invalid settings in attr: ");
 
 	pthread_attr_init(&attr);
 
