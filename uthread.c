@@ -234,10 +234,16 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
         printf("\n pthread_create \n");
         struct uthr *td = NULL;
         (void) attrp;
-	// (Your code goes here.)
+        if (attrp != NULL) {
+            errno = ENOTSUP;
+            return ENOTSUP;
+        }  
+
+
 	for (volatile long i = 0; i < NUTHR; i++) {
 	    if (uthr_array[i].state == UTHR_FREE) {
                 td = &uthr_array[i];
+                printf("%ld\n", i);
 		break;
 	     }
         }
@@ -257,6 +263,7 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
 
 	td->stack_base = uthr_intern_malloc(UTHR_STACK_SIZE);
         if (td->stack_base == NULL) {
+            printf("uthr intern received NULL \n");
             errno = ENOMEM;
 	    return -1;
 	}
@@ -284,8 +291,9 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
 
        // Return the thread ID
        *tidp = td - uthr_array;
-      
-	return *tidp;
+
+        printf("thread ID value is %ld\n", *tidp); 
+	return 0;
 }
 
 int
@@ -530,7 +538,7 @@ uthr_init(void)
 		uthr_exit_errno("setitimer");	
 	}
 
-        printf("end \n");
+        printf("end of uthr_init function \n");
 }
 
 
@@ -544,7 +552,7 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
         uthr_block_SIGPROF(&SIGPROF_set);
         uthr_assert_SIGPROF_blocked();
         
-        printf("uthr look up \n");	 
+        //printf("uthr look up \n");	 
 	/*
 	 * A concurrent lookup by another thread may have already set the
 	 * address.
@@ -553,24 +561,18 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
 	    /*
             * See the manual page for dlopen().
             */
-            void *handle = dlopen(NULL, RTLD_NOW);
-            if (handle == NULL) {
-                uthr_exit_errno(dlerror());
-            }
+	   *addrp = dlsym(RTLD_NEXT, symbol);
+	   if (*addrp == NULL) {
+		printf("failed to find symbol %s: %s\n", symbol,
+		    dlerror());
+	   }
         
-            *addrp = dlsym(handle, symbol);
-            const char *error = dlerror();
-           
-             if (error != NULL) {
-                 printf("error looking up symbol %s: %s\n", symbol, error);
-                 uthr_exit_errno("dlsym");
-             }
-
-	    
-             dlclose(handle);   
+	} else {
+	    uthr_unblock_SIGPROF(&SIGPROF_set);
 	}
-        printf("uthr look up symbol");
-       // uthr_unblock_SIGPROF(&SIGPROF_set);
+        
+	// printf("uthr look up symbol");
+        // uthr_unblock_SIGPROF(&SIGPROF_set);
 }
 
 void
