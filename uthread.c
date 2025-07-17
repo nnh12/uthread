@@ -230,15 +230,14 @@ int
 pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
     void *(*start_routine)(void *restrict), void *restrict argp)
 {
-        
-        printf("\n pthread_create \n");
-        struct uthr *td = NULL;
-        (void) attrp;
+        printf("Entered pthread_create function \n");
+       
         if (attrp != NULL) {
             errno = ENOTSUP;
             return ENOTSUP;
-        }  
+        }
 
+        struct uthr *td = NULL:
 
 	for (volatile long i = 0; i < NUTHR; i++) {
 	    if (uthr_array[i].state == UTHR_FREE) {
@@ -263,7 +262,7 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
 
 	td->stack_base = uthr_intern_malloc(UTHR_STACK_SIZE);
         if (td->stack_base == NULL) {
-            printf("uthr intern received NULL \n");
+            printf("Unable to allocate for the td stack. Exiting program \n");
             errno = ENOMEM;
 	    return -1;
 	}
@@ -292,7 +291,7 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
        // Return the thread ID
        *tidp = td - uthr_array;
 
-        printf("thread ID value is %ld\n", *tidp); 
+        printf("Thread ID value is %ld\n", *tidp); 
 	return 0;
 }
 

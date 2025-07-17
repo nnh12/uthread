@@ -453,7 +453,7 @@ int
 main(void)
 {
 	test_pthread_create_invalidattr();
-	//test_pthread_create_threadlimit();
+	test_pthread_create_threadlimit();
 	printf("\n");
 
 	//test_pthread_detach_invalid();
