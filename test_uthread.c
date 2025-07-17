@@ -454,10 +454,8 @@ main(void)
 {
 	test_pthread_create_invalidattr();
 	test_pthread_create_threadlimit();
-	printf("\n");
-
-	//test_pthread_detach_invalid();
-	//test_pthread_detach_terminated();
+	test_pthread_detach_invalid();
+	test_pthread_detach_terminated();
 	//test_pthread_detach_detached();
 	//test_pthread_detach_zombie();
 	printf("\n");

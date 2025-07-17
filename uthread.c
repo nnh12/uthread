@@ -298,8 +298,38 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
 int
 pthread_detach(pthread_t tid)
 {
-	// (Your code goes here.)
-	(void) tid;
+        if ((int)tid < 0 || tid >= NUTHR || uthr_array[tid].state == UTHR_FREE) {
+            errno = ESRCH;
+            return ESRCH;
+        }
+
+        struct uthr *td = &uthr_array[tid];
+        
+        if (td->detached) {
+            errno = EINVAL;
+            return EINVAL;
+        }
+
+
+        td->detached = true;
+        
+        // if the thread is in ZOMBIE state, it can be reaped immediately
+        if ((td->state) == UTHR_ZOMBIE) {
+            uthr_intern_free(td->stack_base);
+            td->stack_base = NULL;
+            td->state = UTHR_FREE;
+
+            // insert the thread back into the free queue
+            td->next = freeq.next;
+            if (freeq.next != NULL) {
+                freeq.prev->next = td;
+            }
+  
+            freeq.next = td;
+            td->prev = &freeq;
+        }  
+        
+
 	return (0);
 }
 
