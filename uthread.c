@@ -237,7 +237,7 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
             return ENOTSUP;
         }
 
-        struct uthr *td = NULL:
+        struct uthr *td = NULL;
 
 	for (volatile long i = 0; i < NUTHR; i++) {
 	    if (uthr_array[i].state == UTHR_FREE) {
@@ -249,7 +249,7 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
 
 	if (td == NULL) {
             errno = EAGAIN;
-	    return -1;
+	    return EAGAIN;
 	}
 
 
