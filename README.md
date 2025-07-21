@@ -4,3 +4,4 @@ The most common multithreading library in Linux is pthreads, which is implemente
 This is a my own custom implementation of pthreads.
 
 The heart of all pthread APIs are in uthread.c
+To compile run: make
