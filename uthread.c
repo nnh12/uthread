@@ -87,6 +87,8 @@ static void *(*mallocp)(size_t);
 static void (*freep)(void *);
 
 static void uthr_scheduler(void);
+void add_thread(struct uthr *td, struct uthr *queue);
+
 
 /**
  * This function checks the current signal mask to ensure that the SIGPROF
@@ -319,17 +321,10 @@ pthread_detach(pthread_t tid)
             td->stack_base = NULL;
             td->state = UTHR_FREE;
 
-            // insert the thread back into the free queue
-            td->next = freeq.next;
-            if (freeq.next != NULL) {
-                freeq.prev->next = td;
-            }
-  
-            freeq.next = td;
-            td->prev = &freeq;
+
+            add_thread(td, &freeq);
         }  
         
-
 	return (0);
 }
 
@@ -353,12 +348,57 @@ pthread_exit(void *retval)
 	(void) retval;
 }
 
+
+void 
+add_thread(struct uthr *td, struct uthr *queue) 
+{
+       td->next = queue->next;
+       if (queue->next != NULL) {
+           queue->next->prev = td;
+       }
+
+
+       queue->next = td;
+       td->prev = queue;
+}
+
 int
 pthread_join(pthread_t tid, void **retval)
 {
-	// (Your code goes here.)
-	(void) tid;
-	(void) retval;
+	printf("Entered pthread_join function\n");
+
+        if ((int) tid < 0 || tid >= NUTHR || uthr_array[tid].state == UTHR_FREE) {
+            errno = ESRCH;
+            return ESRCH;
+        }
+
+        printf("pthread ID is %ld \n", tid);
+        struct uthr *td = &uthr_array[tid];
+
+        if (td->detached) {
+            errno = EINVAL;
+            return EINVAL;
+        }
+        
+        if (td == curr_uthr) {
+            errno = EINVAL;
+            return EINVAL;
+        }
+
+        curr_uthr->state = UTHR_JOINING;
+        td->joiner = curr_uthr;
+
+        if (retval != NULL) {
+            *retval = td->ret_val;
+        }             
+
+        uthr_intern_free(td->stack_base);
+        td->stack_base = NULL;
+        
+        td->state = UTHR_FREE;
+      
+        add_thread(td, &freeq);
+        
 	return (0);
 }
 
