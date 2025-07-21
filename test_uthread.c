@@ -150,7 +150,7 @@ test_pthread_detach_terminated(void)
 
 	retval = pthread_detach(thread);
 	if (retval == ESRCH) {
-		printf("PASSED\n");
+		printf("test_pthread_detach_terminated PASSED\n");
 	} else {
 		printf("FAILED: expected %d, got %d\n", ESRCH, retval);
 	}
@@ -179,7 +179,7 @@ test_pthread_detach_detached(void)
 
 	retval = pthread_detach(thread);
 	if (retval == EINVAL) {
-		printf("PASSED\n");
+		printf("test_pthread_detach_detach PASSED\n");
 	} else {
 		printf("FAILED: expected %d, got %d\n", EINVAL, retval);
 	}
@@ -456,7 +456,7 @@ main(void)
 	test_pthread_create_threadlimit();
 	test_pthread_detach_invalid();
 	test_pthread_detach_terminated();
-	//test_pthread_detach_detached();
+        test_pthread_detach_detached();
 	//test_pthread_detach_zombie();
 	printf("\n");
 
