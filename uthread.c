@@ -320,8 +320,6 @@ pthread_detach(pthread_t tid)
             uthr_intern_free(td->stack_base);
             td->stack_base = NULL;
             td->state = UTHR_FREE;
-
-
             add_thread(td, &freeq);
         }  
         
@@ -381,8 +379,8 @@ pthread_join(pthread_t tid, void **retval)
         }
         
         if (td == curr_uthr) {
-            errno = EINVAL;
-            return EINVAL;
+            errno = EDEADLK;
+            return EDEADLK;
         }
 
         curr_uthr->state = UTHR_JOINING;
@@ -395,8 +393,7 @@ pthread_join(pthread_t tid, void **retval)
         uthr_intern_free(td->stack_base);
         td->stack_base = NULL;
         
-        td->state = UTHR_FREE;
-      
+        td->state = UTHR_FREE;      
         add_thread(td, &freeq);
         
 	return (0);
@@ -621,7 +618,7 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
         uthr_block_SIGPROF(&SIGPROF_set);
         uthr_assert_SIGPROF_blocked();
         
-        //printf("uthr look up \n");	 
+        printf("uthr look up \n");	 
 	/*
 	 * A concurrent lookup by another thread may have already set the
 	 * address.
@@ -640,7 +637,7 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
 	    uthr_unblock_SIGPROF(&SIGPROF_set);
 	}
         
-	// printf("uthr look up symbol");
+        printf("uthr look up symbol");
         // uthr_unblock_SIGPROF(&SIGPROF_set);
 }
 
