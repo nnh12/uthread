@@ -280,8 +280,8 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
        td->uctx.uc_link = &sched_uctx; // Link to the scheduler context
 
        // Set the thread's start routine
-       makecontext(&td->uctx, (void (*)(void))uthr_start, 1, (int)(td - uthr_array));
-
+       makecontext(&td->uctx, (void (*)(void))td->start_routine, 1, (int)(td - uthr_array));
+       (void) uthr_start;
        // Insert the thread into the run queue
        td->next = runq.next;
        if (runq.next != NULL) {
@@ -383,13 +383,35 @@ pthread_join(pthread_t tid, void **retval)
             return EDEADLK;
         }
 
+        struct uthr *joiner = td;
+        while (joiner != NULL) {
+            if (joiner == curr_uthr) {
+                if (td->ret_val == NULL) {
+                    td->ret_val = uthr_intern_malloc(sizeof(int));
+                }
+                *(int *)(td->ret_val) = EDEADLK;
+            }
+            joiner = joiner->joiner;
+        }
+
+
         curr_uthr->state = UTHR_JOINING;
         td->joiner = curr_uthr;
 
-        if (retval != NULL) {
-            *retval = td->ret_val;
-        }             
+        //if (swapcontext(&curr_uthr->uctx, &sched_uctx) == -1) {
+        //    uthr_exit_errno("swapcontext");
+        //}
 
+        if (retval != NULL) {
+            if (td->ret_val == NULL){
+                td->ret_val = uthr_intern_malloc(sizeof(int));
+            }               
+            
+          
+            *(int *)(td->ret_val) = EDEADLK;
+            *retval = td->ret_val;
+        }  
+        
         uthr_intern_free(td->stack_base);
         td->stack_base = NULL;
         

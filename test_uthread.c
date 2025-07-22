@@ -37,9 +37,9 @@ void *
 thread_function_join(void *arg)
 {
 	(void) arg;
-	//pthread_t *thread = arg;
-	//int	  *retval = malloc(sizeof(int));
-	//*retval = pthread_join(*thread, NULL);
+	pthread_t *thread = arg;
+	int	  *retval = malloc(sizeof(int));
+	*retval = pthread_join(*thread, NULL);
 	return 0;
 }
 
