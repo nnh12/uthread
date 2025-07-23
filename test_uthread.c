@@ -5,6 +5,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+
+typedef struct {
+	char* filename;
+        char* content;
+} thread_args_t;
+
 /* Test thread functions */
 void *
 thread_function_null(void *arg)
@@ -36,16 +42,74 @@ thread_function_exit(void *arg)
 void *
 thread_function_join(void *arg)
 {
-	(void) arg;
 	pthread_t *thread = arg;
 	int	  *retval = malloc(sizeof(int));
 	*retval = pthread_join(*thread, NULL);
 	return 0;
 }
 
+
+void *
+thread_function_write(void *arg)
+{
+        thread_args_t *args =  (thread_args_t *)arg;
+
+	FILE  *file = fopen(args->filename, "w");
+        if (file == NULL) {
+       		perror("error createing file \n");
+                return (void *)-1;
+        }
+
+        fprintf(file, "%s\n", args->content);
+	return 0;
+}
+
+void *
+thread_function_create_txt(void *arg)
+{
+        thread_args_t *args =  (thread_args_t *)arg;
+	FILE *file = fopen(args->filename, "w");
+        if (file == NULL) {
+        	perror("error creating file \n");
+        	return (void *)-1;
+ 	}
+
+        fclose(file);
+        return 0;
+}
+
+
 /**
  * Test cases for pthread_create.
  */
+
+void 
+test_pthread_create_function(void)
+{
+	pthread_t       thread;
+        thread_args_t *arg = malloc(sizeof(thread_args_t));
+	arg->filename = "text.txt";
+	arg->content = "written text by thread";
+
+        if (pthread_create(&thread, NULL, thread_function_create_txt, arg) != 0) {
+        	printf("Unexpected error in pthread_create\n");
+		return;
+        }
+
+
+	if (pthread_join(thread, NULL) != 0) {
+        	printf("Unexpected error in pthread_join\n");
+                return;
+        }
+		
+	if (pthread_create(&thread, NULL, thread_function_write, NULL) != 0) {
+		printf("Unexpected erorr in pthread_create\n");
+		return;
+	} 
+}
+
+
+
 
 /**
  * Test invalid settings in attr.
@@ -452,6 +516,7 @@ test_pthread_exit_return(void)
 int
 main(void)
 {
+        test_pthread_create_function();
 	test_pthread_create_invalidattr();
 	test_pthread_create_threadlimit();
 	test_pthread_detach_invalid();
