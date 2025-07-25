@@ -389,6 +389,7 @@ pthread_join(pthread_t tid, void **retval)
                 if (td->ret_val == NULL) {
                     td->ret_val = uthr_intern_malloc(sizeof(int));
                 }
+                printf("here");
                 *(int *)(td->ret_val) = EDEADLK;
             }
             joiner = joiner->joiner;
@@ -424,7 +425,30 @@ pthread_join(pthread_t tid, void **retval)
 int
 sched_yield(void)
 {
-	// (Your code goes here.)
+	assert(curr_uthr->state == UTHR_RUNNABLE);
+	
+	// If there is only one thread in the RUN queue, do nothing
+	if (runq.next->next == NULL) {
+		return 0;
+	}
+
+	// Remove the first thread in the RUN queue
+	struct uthr* current_run_thread = runq.next;
+	runq.next = runq.next->next;	
+	
+	// Move the current thread to the end of the queue
+	struct uthr* end = runq.next;
+	while (end != NULL) {
+		end = end->next;
+	} 
+	end->next = current_run_thread;
+	current_run_thread->next = NULL;
+	current_run_thread->prev = end;
+	
+	// Switch to the scheduler context
+	if (swapcontext(&curr_uthr->uctx, &sched_uctx) == - 1) {
+		uthr_exit_errno("Error switching the scheduler context\n");
+	}
 	return (0);
 }
 
