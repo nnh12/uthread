@@ -384,15 +384,16 @@ pthread_join(pthread_t tid, void **retval)
             return EDEADLK;
         }
 
-        struct uthr *joiner = td;
-        while (joiner != NULL) {
-            if (joiner == curr_uthr) {
+	// Check if there is a cyclical join
+        struct uthr *current_thread = td;
+        while (current_thread != NULL) {
+            if (current_thread == curr_uthr) {
                 if (td->ret_val == NULL) {
                     td->ret_val = uthr_intern_malloc(sizeof(int));
                 }
                 *(int *)(td->ret_val) = EDEADLK;
             }
-            joiner = joiner->joiner;
+            current_thread = current_thread->joiner;
         }
 
 
@@ -423,31 +424,30 @@ pthread_join(pthread_t tid, void **retval)
 int
 sched_yield(void)
 {
-	if (curr_uthr->state != UTHR_RUNNABLE) {
-		printf("The current state is not runnable\n");
-	}
 	assert(curr_uthr->state == UTHR_RUNNABLE);
 	
-	// If there is only one thread in the RUN queue, do nothing
-	if (runq.next->next == NULL) {
-		return 0;
-	}
-
-	// Remove the first thread in the RUN queue
+	// Grab the first thread in the queue
 	struct uthr* current_run_thread = runq.next;
-	runq.next = runq.next->next;	
 	
-	// Move the current thread to the end of the queue
-	struct uthr* end = runq.next;
-	while (end != NULL) {
-		end = end->next;
-	} 
-	end->next = current_run_thread;
-	current_run_thread->next = NULL;
-	current_run_thread->prev = end;
+	// Logic if there is another thread in the queue
+	if (current_run_thread->next != NULL) {
+	
+		// Move the current thread to the end of the queue
+		struct uthr* end = runq.next;
+		while (end != NULL) {
+			end = end->next;
+		} 
+		
+		end->next = current_run_thread;
+		current_run_thread->next = NULL;
+		current_run_thread->prev = end;
+
+		// Update the run pointer to next one
+		runq.next = runq.next->next;
+	}
 	
 	// Switch to the scheduler context
-	if (swapcontext(&curr_uthr->uctx, &sched_uctx) == - 1) {
+	if (swapcontext(&current_run_thread->uctx, &sched_uctx) == - 1) {
 		uthr_exit_errno("Error switching the scheduler context\n");
 	}
 	return (0);
