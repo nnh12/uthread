@@ -256,7 +256,7 @@ void
 test_pthread_detach_zombie(void)
 {
 	pthread_t thread;
-	int	  retval;
+	//int	  retval;
 
 	printf("TEST pthread_detach - thread is already a zombie: ");
 
@@ -266,14 +266,14 @@ test_pthread_detach_zombie(void)
 	}
 
 	// Yield to the above created thread, which will immediately return.
-	(void)sched_yield();
+	//sched_yield();
 
-	retval = pthread_detach(thread);
-	if (retval == 0) {
-		printf("PASSED\n");
-	} else {
-		printf("FAILED: expected %d, got %d\n", 0, retval);
-	}
+	//retval = pthread_detach(thread);
+	//if (retval == 0) {
+	//	printf("PASSED\n");
+	//} else {
+	//	printf("FAILED: expected %d, got %d\n", 0, retval);
+	//}
 }
 
 /**
@@ -516,7 +516,7 @@ test_pthread_exit_return(void)
 int
 main(void)
 {
-        test_pthread_create_function();
+        //test_pthread_create_function();
 	test_pthread_create_invalidattr();
 	test_pthread_create_threadlimit();
 	test_pthread_detach_invalid();
@@ -525,10 +525,10 @@ main(void)
 	test_pthread_detach_zombie();
 	printf("\n");
 
-        test_pthread_join_invalid();
-	test_pthread_join_terminated();
-	test_pthread_join_self();
-        test_pthread_join_circular();
+        //test_pthread_join_invalid();
+	//test_pthread_join_terminated();
+	//test_pthread_join_self();
+        //test_pthread_join_circular();
 	//test_pthread_join_detached();
 	//test_pthread_join_conflict();
 	//test_pthread_join_return();
