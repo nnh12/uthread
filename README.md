@@ -1,4 +1,4 @@
-# Implementation of a User-level Multiple Threaded Library
+# A User-level Implementation of Pthreads Library
 
 The most common multithreading library in Linux is pthreads, which is implemented by kernel-level threads.
 This is a my own custom implementation of pthreads on user level. I wrote my own thread scheduler to handle 
