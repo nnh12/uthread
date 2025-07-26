@@ -282,6 +282,7 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
        // Set the thread's start routine
        makecontext(&td->uctx, (void (*)(void))td->start_routine, 1, (int)(td - uthr_array));
        (void) uthr_start;
+
        // Insert the thread into the run queue
        td->next = runq.next;
        if (runq.next != NULL) {
@@ -389,7 +390,6 @@ pthread_join(pthread_t tid, void **retval)
                 if (td->ret_val == NULL) {
                     td->ret_val = uthr_intern_malloc(sizeof(int));
                 }
-                printf("here");
                 *(int *)(td->ret_val) = EDEADLK;
             }
             joiner = joiner->joiner;
@@ -399,9 +399,7 @@ pthread_join(pthread_t tid, void **retval)
         curr_uthr->state = UTHR_JOINING;
         td->joiner = curr_uthr;
 
-        //if (swapcontext(&curr_uthr->uctx, &sched_uctx) == -1) {
-        //    uthr_exit_errno("swapcontext");
-        //}
+        // Should call sched_yield when I add logic for the thread scheduler
 
         if (retval != NULL) {
             if (td->ret_val == NULL){
@@ -409,8 +407,8 @@ pthread_join(pthread_t tid, void **retval)
             }               
             
           
-            *(int *)(td->ret_val) = EDEADLK;
-            *retval = td->ret_val;
+           *(int *)(td->ret_val) = EDEADLK;
+           *retval = td->ret_val;
         }  
         
         uthr_intern_free(td->stack_base);
@@ -425,6 +423,9 @@ pthread_join(pthread_t tid, void **retval)
 int
 sched_yield(void)
 {
+	if (curr_uthr->state != UTHR_RUNNABLE) {
+		printf("The current state is not runnable\n");
+	}
 	assert(curr_uthr->state == UTHR_RUNNABLE);
 	
 	// If there is only one thread in the RUN queue, do nothing
@@ -529,10 +530,23 @@ static void
 uthr_scheduler(void)
 {
  	uthr_assert_SIGPROF_blocked();
+	printf("Uthr_scheduler function\n");
  	for (;;) {
+		if (runq.next != NULL) {
+			// Selects the current thread in RUNNABLE queue
+			struct uthr *selected_thread = runq.next;
 
- 		// (Your code goes here.)
+			// Move the current thread to the next thread and
+			// remove previous thread
+			if (selected_thread->next != NULL) {
+				curr_uthr  = selected_thread->next;
+				runq.next = selected_thread->next;
+			}
 
+			if (swapcontext(&sched_uctx, &selected_thread->uctx) != 0){
+				uthr_exit_errno("Error switching context to the thread\n");
+			}		
+		}
  	}
 }
 
