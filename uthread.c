@@ -400,7 +400,7 @@ pthread_join(pthread_t tid, void **retval)
         curr_uthr->state = UTHR_JOINING;
         td->joiner = curr_uthr;
 
-        // Should call sched_yield when I add logic for the thread scheduler
+        sched_yield();
 
         if (retval != NULL) {
             if (td->ret_val == NULL){
