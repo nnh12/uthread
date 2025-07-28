@@ -216,7 +216,7 @@ test_pthread_detach_terminated(void)
 		return;
 	}
 
-	if (pthread_join(thread, NULL) != 0) {
+	if(pthread_join(thread, NULL) != 0) {
 		printf("Unexpected error in pthread_join\n");
 		return;
 	}
@@ -268,14 +268,15 @@ test_pthread_wait_thread(void)
 {
 	pthread_t thread;
 
-	printf("Test pthread_join - wait for thread to finish executing: ");
+	printf("TEST pthread_wait_thread - wait for thread to finish executing: ");
 	
 	if (pthread_create(&thread, NULL, thread_function_print, NULL) != 0) {
 		printf("Unexpected error in pthread_create\n");
 		return;
 	}
 
-	sched_yield();
+	pthread_join(thread, NULL);
+	printf("End of the test_pthread_wait_thread test \n");
 }
 
 
@@ -311,7 +312,7 @@ test_pthread_detach_zombie(void)
  */
 
 /**
- * Test the case where the caller specifies an invalid thread identifier.
+ *i Test the case where the caller specifies an invalid thread identifier.
  */
 void
 test_pthread_join_invalid(void)
