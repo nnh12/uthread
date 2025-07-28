@@ -45,6 +45,7 @@ static struct uthr {
 	struct uthr *joiner;
 	bool detached;
 	int fd;
+	int uthr_id;
 	enum uthr_op op;
 } uthr_array[NUTHR];
 
@@ -209,6 +210,7 @@ uthr_intern_free(void *ptr)
 static void
 uthr_start(int tidx) 
 {
+	printf("Inside uthr_start function and thread ID is %d\n", tidx);
  	sigset_t old_set;
 
  	uthr_assert_SIGPROF_blocked();
@@ -261,7 +263,7 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
 	td->ret_val = NULL;
 	td->detached = false;
 	td->joiner = NULL;
-
+        td->uthr_id = (int)(td - uthr_array);
 	td->stack_base = uthr_intern_malloc(UTHR_STACK_SIZE);
         if (td->stack_base == NULL) {
             printf("Unable to allocate for the td stack. Exiting program \n");
@@ -277,11 +279,10 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
 
        td->uctx.uc_stack.ss_sp = td->stack_base;
        td->uctx.uc_stack.ss_size = UTHR_STACK_SIZE;
-       td->uctx.uc_link = &sched_uctx; // Link to the scheduler context
+       td->uctx.uc_link = NULL; // Link to the scheduler context
 
        // Set the thread's start routine
-       makecontext(&td->uctx, (void (*)(void))td->start_routine, 1, (int)(td - uthr_array));
-       (void) uthr_start;
+       makecontext(&td->uctx, (void (*)(void))uthr_start, 1, (int)(td - uthr_array));
 
        // Insert the thread into the run queue
        td->next = runq.next;
@@ -396,10 +397,8 @@ pthread_join(pthread_t tid, void **retval)
             current_thread = current_thread->joiner;
         }
 
-
         curr_uthr->state = UTHR_JOINING;
         td->joiner = curr_uthr;
-
         sched_yield();
 
         if (retval != NULL) {
@@ -424,6 +423,7 @@ pthread_join(pthread_t tid, void **retval)
 int
 sched_yield(void)
 {
+	printf("Inside Sched_yeild function\n");
 	assert(curr_uthr->state == UTHR_RUNNABLE);
 	
 	// Grab the first thread in the queue
@@ -431,7 +431,7 @@ sched_yield(void)
 	
 	// Logic if there is another thread in the queue
 	if (current_run_thread->next != NULL) {
-	
+                printf("move the current thread to end of queue\n");	
 		// Move the current thread to the end of the queue
 		struct uthr* end = runq.next;
 		while (end != NULL) {
@@ -450,6 +450,8 @@ sched_yield(void)
 	if (swapcontext(&current_run_thread->uctx, &sched_uctx) == - 1) {
 		uthr_exit_errno("Error switching the scheduler context\n");
 	}
+	
+	printf("final switch \n");
 	return (0);
 }
 
@@ -531,18 +533,21 @@ uthr_scheduler(void)
 {
  	uthr_assert_SIGPROF_blocked();
 	printf("Uthr_scheduler function\n");
- 	for (;;) {
+	for (;;) {
+		printf("Enter for loop\n");
+
 		if (runq.next != NULL) {
 			// Selects the current thread in RUNNABLE queue
 			struct uthr *selected_thread = runq.next;
 
-			// Move the current thread to the next thread and
+			// Update the current thread to the next thread and
 			// remove previous thread
 			if (selected_thread->next != NULL) {
 				curr_uthr  = selected_thread->next;
 				runq.next = selected_thread->next;
 			}
-
+			
+			makecontext(&selected_thread->uctx, (void (*)(void))uthr_start, 1, selected_thread->uthr_id);
 			if (swapcontext(&sched_uctx, &selected_thread->uctx) != 0){
 				uthr_exit_errno("Error switching context to the thread\n");
 			}		
