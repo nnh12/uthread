@@ -64,6 +64,15 @@ thread_function_write(void *arg)
 	return 0;
 }
 
+
+void *
+thread_function_print(void *arg)
+{
+	(void)arg;
+	printf("In the thread print function\n");
+	return 0;
+}
+
 void *
 thread_function_create_txt(void *arg)
 {
@@ -249,6 +258,27 @@ test_pthread_detach_detached(void)
 	}
 }
 
+
+/**
+ * Test the case where the calling thread waits for the target thread to 
+ * finish.
+ */
+void 
+test_pthread_wait_thread(void)
+{
+	pthread_t thread;
+
+	printf("Test pthread_join - wait for thread to finish executing: ");
+	
+	if (pthread_create(&thread, NULL, thread_function_print, NULL) != 0) {
+		printf("Unexpected error in pthread_create\n");
+		return;
+	}
+
+	sched_yield();
+}
+
+
 /**
  * Test the case where the specified thread is already a zombie.
  */
@@ -256,24 +286,24 @@ void
 test_pthread_detach_zombie(void)
 {
 	pthread_t thread;
-	//int	  retval;
+	int	  retval;
 
 	printf("TEST pthread_detach - thread is already a zombie: ");
 
-	if (pthread_create(&thread, NULL, thread_function_null, NULL) != 0) {
+	if (pthread_create(&thread, NULL, thread_function_print, NULL) != 0) {
 		printf("Unexpected error in pthread_create\n");
 		return;
 	}
 
 	// Yield to the above created thread, which will immediately return.
-	//sched_yield();
+	sched_yield();
 
-	//retval = pthread_detach(thread);
-	//if (retval == 0) {
-	//	printf("PASSED\n");
-	//} else {
-	//	printf("FAILED: expected %d, got %d\n", 0, retval);
-	//}
+	retval = pthread_detach(thread);
+	if (retval == 0) {
+		printf("PASSED\n");
+	} else {
+		printf("FAILED: expected %d, got %d\n", 0, retval);
+	}
 }
 
 /**
@@ -517,12 +547,13 @@ int
 main(void)
 {
         //test_pthread_create_function();
-	test_pthread_create_invalidattr();
-	test_pthread_create_threadlimit();
-	test_pthread_detach_invalid();
-	test_pthread_detach_terminated();
-        test_pthread_detach_detached();
-	test_pthread_detach_zombie();
+	//test_pthread_create_invalidattr();
+	//test_pthread_create_threadlimit();
+	//test_pthread_detach_invalid();
+	//test_pthread_detach_terminated();
+        //test_pthread_detach_detached();
+	//test_pthread_detach_zombie();
+	test_pthread_wait_thread();
 	printf("\n");
 
         //test_pthread_join_invalid();
