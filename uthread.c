@@ -186,15 +186,18 @@ uthr_intern_free(void *ptr)
  *
  * @param td A pointer to the thread to be freed.
  */
-// static void
-// uthr_to_free(struct uthr *td)
-// {
-// 	uthr_assert_SIGPROF_blocked();
-// 	assert(td->state == UTHR_ZOMBIE);
+static void
+uthr_to_free(struct uthr *td)
+{
+ 	uthr_assert_SIGPROF_blocked();
+ 	assert(td->state == UTHR_ZOMBIE);
 
-// 	// (Your code goes here.)
-// 	(void)td;
-// }
+	uthr_intern_free(td->stack_base);
+ 	td->stack_base = NULL;
+	td->state = UTHR_FREE;
+
+	add_thread(td, &freeq);	
+}
 
 /**
  * This function is responsible for starting the execution of a user-level
@@ -227,12 +230,30 @@ uthr_start(int tidx)
 	assert(sigismember(&old_set, SIGPROF));
 	
 	printf("Now executing thread function in uthr_start \n");
+	// Execute the specified thread
 	selected_thread->ret_val = selected_thread->start_routine(selected_thread->argp);
 	
+	// Transition the thread into the Zombie state
+	selected_thread->state = UTHR_ZOMBIE;
 
+	// If the selected thread has a joiner thread, move joiner thread to top of the queue 
+	if (selected_thread->joiner != NULL) {
+		struct uthr *joining_thread = selected_thread->joiner;
+		joining_thread->state = UTHR_RUNNABLE;
 
-	// (Your code goes here.)
- 	(void) tidx;
+		joining_thread->next = runq.next;
+		if (runq.next != NULL) {
+			runq.next->prev = joining_thread;
+		}
+		
+		runq.next = joining_thread;
+		runq.next->prev = NULL;
+	}
+
+	// Switch back into the scheduler
+	if (swapcontext(&selected_thread->uctx, &sched_uctx) != 0) {
+		uthr_exit_errno("Error swtiching back into the scheduler\n");
+	}
 }
 
 int
@@ -377,7 +398,6 @@ pthread_join(pthread_t tid, void **retval)
             return ESRCH;
         }
 
-        printf("pthread ID is %ld \n", tid);
         struct uthr *td = &uthr_array[tid];
 
         if (td->detached) {
@@ -402,25 +422,24 @@ pthread_join(pthread_t tid, void **retval)
             current_thread = current_thread->joiner;
         }
 
+	// Set the calling thread to be joining
         curr_uthr->state = UTHR_JOINING;
         td->joiner = curr_uthr;
-        sched_yield();
+	
+	// Switch to the scheduler
+	if (swapcontext(&td->joiner->uctx, &sched_uctx) != 0) {
+		uthr_exit_errno("Error switching to the scheduler context \n");
+	}        
+	        
 
         if (retval != NULL) {
-            if (td->ret_val == NULL){
-                td->ret_val = uthr_intern_malloc(sizeof(int));
-            }               
-            
-          
+           td->ret_val = uthr_intern_malloc(sizeof(int));
            *(int *)(td->ret_val) = EDEADLK;
            *retval = td->ret_val;
         }  
         
+	uthr_to_free(td);
         uthr_intern_free(td->stack_base);
-        td->stack_base = NULL;
-        
-        td->state = UTHR_FREE;      
-        add_thread(td, &freeq);
         
 	return (0);
 }
@@ -456,7 +475,7 @@ sched_yield(void)
 		uthr_exit_errno("Error switching the scheduler context\n");
 	}
 	
-	printf("final switch \n");
+	printf("Logic after switching from the sched_yiedld context \n");
 	return (0);
 }
 
@@ -544,18 +563,28 @@ uthr_scheduler(void)
 		if (runq.next != NULL) {
 			// Selects the current thread in RUNNABLE queue
 			struct uthr *selected_thread = runq.next;
-
-			// Update the current thread to the next thread and
-			// remove previous thread
+			
+			// Update the current thread to the next available thread
 			if (selected_thread->next != NULL) {
 				curr_uthr  = selected_thread->next;
 				runq.next = selected_thread->next;
 			}
 			
-			makecontext(&selected_thread->uctx, (void (*)(void))uthr_start, 1, selected_thread->uthr_id);
 			if (swapcontext(&sched_uctx, &selected_thread->uctx) != 0){
 				uthr_exit_errno("Error switching context to the thread\n");
-			}		
+			}
+
+			if (selected_thread->state == UTHR_ZOMBIE){
+				if (selected_thread->detached) {
+					uthr_to_free(selected_thread);					
+				}
+
+				if (selected_thread->joiner != NULL) {
+					selected_thread->joiner->state = UTHR_RUNNABLE;
+					add_thread(selected_thread->joiner, &runq);
+				}
+			}
+					
 		}
  	}
 }
