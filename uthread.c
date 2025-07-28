@@ -214,8 +214,8 @@ uthr_start(int tidx)
  	sigset_t old_set;
 
  	uthr_assert_SIGPROF_blocked();
- 	struct uthr *td = &uthr_array[tidx];
- 	assert(td->state == UTHR_RUNNABLE);
+ 	struct uthr *selected_thread = &uthr_array[tidx];
+ 	assert(selected_thread->state == UTHR_RUNNABLE);
 
  	/*
  	 * Before running the thread's start routine, SIGPROF signals must be
@@ -225,6 +225,11 @@ uthr_start(int tidx)
  	if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, &old_set) == -1)
 		uthr_exit_errno("sigprocmask");
 	assert(sigismember(&old_set, SIGPROF));
+	
+	printf("Now executing thread function in uthr_start \n");
+	selected_thread->ret_val = selected_thread->start_routine(selected_thread->argp);
+	
+
 
 	// (Your code goes here.)
  	(void) tidx;

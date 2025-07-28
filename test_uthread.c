@@ -69,7 +69,7 @@ void *
 thread_function_print(void *arg)
 {
 	(void)arg;
-	printf("In the thread print function\n");
+	printf("In the print function thread \n");
 	return 0;
 }
 
