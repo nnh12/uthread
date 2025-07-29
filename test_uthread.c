@@ -22,6 +22,7 @@ thread_function_null(void *arg)
 void *
 thread_function_sleep(void *arg)
 {
+	printf("WOWWW inside the function sleep thread \n");
 	(void)arg;
 	sleep(1);
 	return (NULL);
@@ -68,8 +69,7 @@ thread_function_write(void *arg)
 void *
 thread_function_print(void *arg)
 {
-	(void)arg;
-	printf("In the print function thread \n");
+	printf("In the print function thread with value %d\n", *(int *)arg);
 	return 0;
 }
 
@@ -118,6 +118,26 @@ test_pthread_create_function(void)
 }
 
 
+void
+test_pthread_create_two_functions(void)
+{
+
+	pthread_t 	thread1, thread2;
+	int val1 = 1;
+	int val2 = 2;
+
+	if (pthread_create(&thread1, NULL, thread_function_print, &val1) != 0) {
+		printf("Unexpected error in pthread_create\n");
+	}
+
+	if (pthread_create(&thread2, NULL, thread_function_print, &val2) != 0) {
+		printf("Unexpected error in pthread_create\n");
+	}
+
+	pthread_join(thread1, NULL);
+	printf("Waiting for the next thread\n");
+	pthread_join(thread2, NULL);
+}
 
 
 /**
@@ -454,11 +474,11 @@ test_pthread_join_conflict(void)
 	pthread_t thread, target;
 	int	  retval1;
 	int	 *retval2;
-
+	int x = 1;
 	printf(
 	    "TEST pthread_join - thread is already joining with target thread: ");
 
-	if (pthread_create(&target, NULL, thread_function_sleep, NULL) != 0) {
+	if (pthread_create(&target, NULL, thread_function_sleep, &x) != 0) {
 		printf("Unexpected error in pthread_create\n");
 		return;
 	}
@@ -473,6 +493,15 @@ test_pthread_join_conflict(void)
 		printf("Unexpected error in pthread_join\n");
 		return;
 	}
+	
+	if (retval2 == NULL) {
+		printf("retval2 is NULL\n");
+		return;
+	}
+	else{
+		printf("retval is not NULL\n");
+	}
+
 
 	if ((retval1 == 0 && *retval2 == EINVAL) ||
 	    (retval1 == EINVAL && *retval2 == 0)) {
@@ -554,10 +583,11 @@ main(void)
 	//test_pthread_detach_invalid();
 	//test_pthread_detach_terminated();
         //test_pthread_detach_detached();
-	test_pthread_detach_zombie();
+	//test_pthread_detach_zombie();
 	//test_pthread_wait_thread();
 	printf("\n");
 
+	test_pthread_create_two_functions();
         //test_pthread_join_invalid();
 	//test_pthread_join_terminated();
 	//test_pthread_join_self();
