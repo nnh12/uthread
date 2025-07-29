@@ -103,12 +103,12 @@ static void
 uthr_assert_SIGPROF_blocked(void)
 {
         
-	printf("uthr_assert_sigprof_blocked \n");	
+	//printf("uthr_assert_sigprof_blocked \n");	
 
         if (sigismember(&SIGPROF_set, SIGPROF)) {
-            printf("SIG PROF is currently blocked. \n");
+            //printf("SIG PROF is currently blocked. \n");
         } else {
-            printf("SIG PROF is not blocked. \n");
+            //printf("SIG PROF is not blocked. \n");
             uthr_exit_errno("SIGPROF is not blocked. \n");
         }   
 }
@@ -236,6 +236,8 @@ uthr_start(int tidx)
 	// Transition the thread into the Zombie state
 	selected_thread->state = UTHR_ZOMBIE;
 
+	printf("Thread id %d is transitioning into %d\n", selected_thread->uthr_id, selected_thread->state);
+
 	// If the selected thread has a joiner thread, move joiner thread to top of the queue 
 	if (selected_thread->joiner != NULL) {
 		struct uthr *joining_thread = selected_thread->joiner;
@@ -321,13 +323,14 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
        // Return the thread ID
        *tidp = td - uthr_array;
 
-        printf("Thread ID value is %ld\n", *tidp); 
+        printf("Created a thread with ID of %ld \n", *tidp); 
 	return 0;
 }
 
 int
 pthread_detach(pthread_t tid)
 {
+	printf("Inside the pthread_detach function\n");
         if ((int)tid < 0 || tid >= NUTHR || uthr_array[tid].state == UTHR_FREE) {
             errno = ESRCH;
             return ESRCH;
@@ -399,7 +402,8 @@ pthread_join(pthread_t tid, void **retval)
         }
 
         struct uthr *td = &uthr_array[tid];
-
+	printf("joining target thread ID  %ld\n", tid);
+	
         if (td->detached) {
             errno = EINVAL;
             return EINVAL;
@@ -421,6 +425,13 @@ pthread_join(pthread_t tid, void **retval)
             }
             current_thread = current_thread->joiner;
         }
+	
+	if (td->joiner != NULL) {
+		printf("Joiner is NULL \n");
+		td->ret_val = uthr_intern_malloc(sizeof(int));
+		*(int *)(td->ret_val) = 5;
+		*retval = td->ret_val;
+	}
 
 	// Set the calling thread to be joining
         curr_uthr->state = UTHR_JOINING;
@@ -429,15 +440,14 @@ pthread_join(pthread_t tid, void **retval)
 	// Switch to the scheduler
 	if (swapcontext(&td->joiner->uctx, &sched_uctx) != 0) {
 		uthr_exit_errno("Error switching to the scheduler context \n");
-	}        
-	        
-
+	}         
+       
         if (retval != NULL) {
            td->ret_val = uthr_intern_malloc(sizeof(int));
-           *(int *)(td->ret_val) = EDEADLK;
+           *(int *)(td->ret_val) = EINVAL;
            *retval = td->ret_val;
         }  
-        
+ 
 	uthr_to_free(td);
         uthr_intern_free(td->stack_base);
         
@@ -563,7 +573,7 @@ uthr_scheduler(void)
 		if (runq.next != NULL) {
 			// Selects the current thread in RUNNABLE queue
 			struct uthr *selected_thread = runq.next;
-			
+		        printf("scheduler picked thread %d\n", selected_thread->uthr_id);	
 			// Update the current thread to the next available thread
 			if (selected_thread->next != NULL) {
 				curr_uthr  = selected_thread->next;
