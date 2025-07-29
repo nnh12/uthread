@@ -298,13 +298,14 @@ test_pthread_detach_zombie(void)
 
 	// Yield to the above created thread, which will immediately return.
 	sched_yield();
-
+	printf("End of th test_pthread_detach_zombie test \n");
+	
 	retval = pthread_detach(thread);
 	if (retval == 0) {
 		printf("PASSED\n");
-	} else {
+	}else {
 		printf("FAILED: expected %d, got %d\n", 0, retval);
-	}
+	}	
 }
 
 /**
@@ -553,8 +554,8 @@ main(void)
 	//test_pthread_detach_invalid();
 	//test_pthread_detach_terminated();
         //test_pthread_detach_detached();
-	//test_pthread_detach_zombie();
-	test_pthread_wait_thread();
+	test_pthread_detach_zombie();
+	//test_pthread_wait_thread();
 	printf("\n");
 
         //test_pthread_join_invalid();
