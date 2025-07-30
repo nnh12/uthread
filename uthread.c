@@ -213,11 +213,10 @@ static void
 uthr_start(int tidx) 
 {
  	sigset_t old_set;
-
+	printf("current thread ID is %d\n", curr_uthr->uthr_id);
  	uthr_assert_SIGPROF_blocked();
  	struct uthr *selected_thread = &uthr_array[tidx];
-        printf("Inside uthr_start function and thread ID is %d and is in state %d\n", tidx, selected_thread->state);
- 
+        
 	assert(selected_thread->state == UTHR_RUNNABLE);
 
  	/*
@@ -235,8 +234,6 @@ uthr_start(int tidx)
 	
 	// Transition the thread into the Zombie state
 	selected_thread->state = UTHR_ZOMBIE;
-
-	printf("Thread id %d is transitioning into %d\n", selected_thread->uthr_id, selected_thread->state);
 
 	// If the selected thread has a joiner thread, move joiner thread to top of the queue 
 	if (selected_thread->joiner != NULL) {
@@ -403,7 +400,7 @@ add_thread(struct uthr *td, struct uthr *queue)
         printf("Inside add thread function \n");
 	struct uthr *itr = queue;
 	while (itr != NULL) {
-		printf("firs chek thread ID is %d\n", itr->uthr_id);
+//		printf("firs chek thread ID is %d\n", itr->uthr_id);
 		itr = itr->next;
 	}
 
@@ -428,7 +425,7 @@ add_thread(struct uthr *td, struct uthr *queue)
 
        itr = queue;
        while (itr != NULL) {
-           printf("thead ID is %d", itr->uthr_id);
+  //         printf("thead ID is %d", itr->uthr_id);
            itr = itr->next;
        }
 }
@@ -444,7 +441,7 @@ pthread_join(pthread_t tid, void **retval)
         }
 
         struct uthr *td = &uthr_array[tid];
-	printf("joining target thread ID  %ld\n", tid);
+	printf("joining target thread ID %ld and curr_uthr ID is %d\n", tid, curr_uthr->uthr_id);
 	
         if (td->detached) {
             errno = EINVAL;
@@ -484,7 +481,8 @@ pthread_join(pthread_t tid, void **retval)
 	if (swapcontext(&td->joiner->uctx, &sched_uctx) != 0) {
 		uthr_exit_errno("Error switching to the scheduler context \n");
 	}         
-       
+
+	printf("End of executing target thread \n");       
         if (retval != NULL) {
            td->ret_val = uthr_intern_malloc(sizeof(int));
            *(int *)(td->ret_val) = EINVAL;
@@ -614,7 +612,7 @@ uthr_scheduler(void)
 		printf("Enter for loop\n");
 		struct uthr *queue = runq.next;
 		while (queue != NULL) {
-			printf("queue ID is %d ", queue->uthr_id);
+			printf("queue ID is %d and curretnt thread ID is  %d\n ", queue->uthr_id, curr_uthr->uthr_id);
 			queue = queue->next;
 		}
 
@@ -625,7 +623,6 @@ uthr_scheduler(void)
 		        printf("\nscheduler picked thread %d\n", selected_thread->uthr_id);	
 			// Update the current thread to the next available thread
 			if (selected_thread->next != NULL) {
-				curr_uthr  = selected_thread->next;
 				runq.next = selected_thread->next;
 			}
 			
