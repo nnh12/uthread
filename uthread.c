@@ -227,7 +227,7 @@ uthr_start(int tidx)
  	 */
  	if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, &old_set) == -1)
 		uthr_exit_errno("sigprocmask");
-	//assert(sigismember(&old_set, SIGPROF));
+	assert(sigismember(&old_set, SIGPROF));
 	
 	printf("Now executing thread function in uthr_start \n");
 	// Execute the specified thread
@@ -640,7 +640,6 @@ uthr_scheduler(void)
 
 				if (selected_thread->joiner != NULL) {
 					selected_thread->joiner->state = UTHR_RUNNABLE;
-					add_thread(selected_thread->joiner, &runq);
 				}
 			}
 		}
