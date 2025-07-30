@@ -103,13 +103,9 @@ void setup_SIGPROF_timer(void);
 static void
 uthr_assert_SIGPROF_blocked(void)
 {
-        
-	//printf("uthr_assert_sigprof_blocked \n");	
-
         if (sigismember(&SIGPROF_set, SIGPROF)) {
-            //printf("SIG PROF is currently blocked. \n");
+            // printf("nothing\n");
         } else {
-            //printf("SIG PROF is not blocked. \n");
             uthr_exit_errno("SIGPROF is not blocked. \n");
         }   
 }
@@ -119,9 +115,9 @@ uthr_block_SIGPROF(sigset_t *old_setp)
 {
 	(void)old_setp;
         //printf("Blocking SIGPROF \n");
-	//if (sigprocmask(SIG_BLOCK, &SIGPROF_set, old_setp) == -1) {
-        //    uthr_exit_errno("sigprocmask");
-        //}
+	if (sigprocmask(SIG_BLOCK, &SIGPROF_set, old_setp) == -1) {
+            uthr_exit_errno("sigprocmask");
+        }
 }
 
 
@@ -129,9 +125,9 @@ void
 uthr_unblock_SIGPROF(sigset_t *old_setp)
 {
        (void)old_setp;
-      // if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, old_setp) == -1) {
-      //     uthr_exit_errno("sigprocmask");
-      // }
+       if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, old_setp) == -1) {
+           uthr_exit_errno("sigprocmask");
+       }
 }
 
 void
@@ -216,12 +212,13 @@ uthr_to_free(struct uthr *td)
 static void
 uthr_start(int tidx) 
 {
-	printf("Inside uthr_start function and thread ID is %d\n", tidx);
  	sigset_t old_set;
 
  	uthr_assert_SIGPROF_blocked();
  	struct uthr *selected_thread = &uthr_array[tidx];
- 	assert(selected_thread->state == UTHR_RUNNABLE);
+        printf("Inside uthr_start function and thread ID is %d and is in state %d\n", tidx, selected_thread->state);
+ 
+	assert(selected_thread->state == UTHR_RUNNABLE);
 
  	/*
  	 * Before running the thread's start routine, SIGPROF signals must be
@@ -230,7 +227,7 @@ uthr_start(int tidx)
  	 */
  	if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, &old_set) == -1)
 		uthr_exit_errno("sigprocmask");
-	assert(sigismember(&old_set, SIGPROF));
+	//assert(sigismember(&old_set, SIGPROF));
 	
 	printf("Now executing thread function in uthr_start \n");
 	// Execute the specified thread
@@ -315,13 +312,32 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
        // Set the thread's start routine
        makecontext(&td->uctx, (void (*)(void))uthr_start, 1, (int)(td - uthr_array));
 
-       // Insert the thread into the run queue
-       td->next = runq.next;
-       if (runq.next != NULL) {
-           runq.next->prev = td;
+       // Insert the thread at the head of the queue if queue is empty
+       if (runq.next == NULL) {
+           td->next = NULL;
+           td->prev = NULL;
+           runq.next = td;   
        }
-       runq.next = td;
-       td->prev = &runq;
+      
+      // Traverse to find the last thread in the queue
+       else {
+           struct uthr *end_queue = runq.next;
+      
+           while (end_queue->next != NULL) {
+               end_queue = end_queue->next;
+           }
+
+           end_queue->next = td;
+           td->prev = end_queue;
+           td->next = NULL;
+       }
+
+//       td->next = runq.next;
+//       if (runq.next != NULL) {
+//           runq.next->prev = td;
+//       }
+//       runq.next = td;
+//       td->prev = &runq;
 
        // Return the thread ID
        *tidp = td - uthr_array;
@@ -384,14 +400,37 @@ pthread_exit(void *retval)
 void 
 add_thread(struct uthr *td, struct uthr *queue) 
 {
-       td->next = queue->next;
-       if (queue->next != NULL) {
-           queue->next->prev = td;
+        printf("Inside add thread function \n");
+	struct uthr *itr = queue;
+	while (itr != NULL) {
+		printf("firs chek thread ID is %d\n", itr->uthr_id);
+		itr = itr->next;
+	}
+
+	// If original queue is empty
+	if (queue->next == NULL) {
+            td->next = NULL;
+            td->prev = NULL;
+	    queue->next = td;
+	}
+
+        // Traverse to the end of the queue
+	else {
+            struct uthr *end_queue = queue;
+	    while (end_queue->next != NULL) {
+	        end_queue = end_queue->next;
+            }
+
+            end_queue->next = td;
+            td->prev = end_queue;
+            td->next = NULL;
        }
 
-
-       queue->next = td;
-       td->prev = queue;
+       itr = queue;
+       while (itr != NULL) {
+           printf("thead ID is %d", itr->uthr_id);
+           itr = itr->next;
+       }
 }
 
 int
@@ -437,6 +476,7 @@ pthread_join(pthread_t tid, void **retval)
 	}
 
 	// Set the calling thread to be joining
+        printf("current thread is %d \n", curr_uthr->uthr_id);
         curr_uthr->state = UTHR_JOINING;
         td->joiner = curr_uthr;
 	
@@ -572,11 +612,17 @@ uthr_scheduler(void)
 	printf("Uthr_scheduler function\n");
 	for (;;) {
 		printf("Enter for loop\n");
+		struct uthr *queue = runq.next;
+		while (queue != NULL) {
+			printf("queue ID is %d ", queue->uthr_id);
+			queue = queue->next;
+		}
+
 
 		if (runq.next != NULL) {
 			// Selects the current thread in RUNNABLE queue
 			struct uthr *selected_thread = runq.next;
-		        printf("scheduler picked thread %d\n", selected_thread->uthr_id);	
+		        printf("\nscheduler picked thread %d\n", selected_thread->uthr_id);	
 			// Update the current thread to the next available thread
 			if (selected_thread->next != NULL) {
 				curr_uthr  = selected_thread->next;
@@ -597,7 +643,6 @@ uthr_scheduler(void)
 					add_thread(selected_thread->joiner, &runq);
 				}
 			}
-					
 		}
  	}
 }
@@ -700,6 +745,11 @@ uthr_init(void)
 	curr_uthr->stack_base = NULL;
 	curr_uthr->prev = NULL;
         curr_uthr->next = NULL;
+        curr_uthr->uthr_id = 0;
+
+        if (getcontext(&curr_uthr->uctx) == -1) {
+	    uthr_exit_errno("getcontext");
+	}
 
 	freeq.next = NULL;
 	struct uthr *prev = &freeq;
