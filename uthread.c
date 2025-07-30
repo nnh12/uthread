@@ -90,6 +90,7 @@ static void (*freep)(void *);
 static void uthr_scheduler(void);
 void add_thread(struct uthr *td, struct uthr *queue);
 
+void setup_SIGPROF_timer(void);
 
 /**
  * This function checks the current signal mask to ensure that the SIGPROF
@@ -116,19 +117,21 @@ uthr_assert_SIGPROF_blocked(void)
 void
 uthr_block_SIGPROF(sigset_t *old_setp)
 {
-        printf("Blocking SIGPROF \n");
-	if (sigprocmask(SIG_BLOCK, &SIGPROF_set, old_setp) == -1) {
-            uthr_exit_errno("sigprocmask");
-        }
+	(void)old_setp;
+        //printf("Blocking SIGPROF \n");
+	//if (sigprocmask(SIG_BLOCK, &SIGPROF_set, old_setp) == -1) {
+        //    uthr_exit_errno("sigprocmask");
+        //}
 }
 
 
 void 
 uthr_unblock_SIGPROF(sigset_t *old_setp)
 {
-       if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, old_setp) == -1) {
-           uthr_exit_errno("sigprocmask");
-       }
+       (void)old_setp;
+      // if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, old_setp) == -1) {
+      //     uthr_exit_errno("sigprocmask");
+      // }
 }
 
 void
@@ -262,8 +265,8 @@ int
 pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
     void *(*start_routine)(void *restrict), void *restrict argp)
 {
-        printf("Entered pthread_create function \n");
-       
+        printf("Entered pthread_create function \n");     
+
         if (attrp != NULL) {
             errno = ENOTSUP;
             return ENOTSUP;
@@ -612,10 +615,32 @@ static void
 uthr_timer_handler(int signum)
 {
 	(void)signum;
-	int save_errno = errno;
-	if (swapcontext(&curr_uthr->uctx, &sched_uctx) == -1)
-		uthr_exit_errno("swapcontext");
-	errno = save_errno;
+	printf("Inside the timer handler");
+	//int save_errno = errno;
+	//if (swapcontext(&curr_uthr->uctx, &sched_uctx) == -1)
+	//	uthr_exit_errno("swapcontext");
+	//errno = save_errno;
+}
+
+void setup_SIGPROF_timer(void)
+{
+	printf("Setting up SIGPROF timer\n");
+	struct sigaction sa = {
+		.sa_handler = uthr_timer_handler,
+		.sa_flags = SA_RESTART
+	};
+
+	sigemptyset(&sa.sa_mask);
+
+	if (sigaction(SIGPROF, &sa, NULL) == -1) {
+		perror("sigaction");
+		exit(EXIT_FAILURE);
+	}
+
+	if (setitimer(ITIMER_PROF, &quantum, NULL) == -1) {
+		perror("setitimer");
+		exit(EXIT_FAILURE);
+	}
 }
 
 /**
@@ -695,23 +720,7 @@ uthr_init(void)
 	/*
 	 * Set up the SIGPROF signal handler.
 	 */
-	// (Your code goes here.)
-	struct sigaction sa = {
-		.sa_handler = uthr_timer_handler,
-		.sa_flags = SA_RESTART | SA_SIGINFO
-	};
-	sigemptyset(&sa.sa_mask);
-	if (sigaction(SIGPROF, &sa, NULL) == -1) {
-		uthr_exit_errno("sigaction");
-	}
-		
-	 
-	/*
-	 * Configure the interval timer for thread scheduling.
-	 */
-	if (setitimer(ITIMER_PROF, &quantum, NULL) == -1) {
-		uthr_exit_errno("setitimer");	
-	}
+	setup_SIGPROF_timer();	
 
         printf("end of uthr_init function \n");
 }
