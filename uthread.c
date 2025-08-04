@@ -213,10 +213,10 @@ static void
 uthr_start(int tidx) 
 {
  	sigset_t old_set;
-	printf("current thread ID is %d\n", curr_uthr->uthr_id);
+
  	uthr_assert_SIGPROF_blocked();
  	struct uthr *selected_thread = &uthr_array[tidx];
-        
+	printf("UTHR_START: executing thread ID of %d\n", selected_thread->uthr_id);        
 	assert(selected_thread->state == UTHR_RUNNABLE);
 
  	/*
@@ -231,23 +231,39 @@ uthr_start(int tidx)
 	printf("Now executing thread function in uthr_start \n");
 	// Execute the specified thread
 	selected_thread->ret_val = selected_thread->start_routine(selected_thread->argp);
-	
+
+	printf("FINISHED executing\n");	
 	// Transition the thread into the Zombie state
 	selected_thread->state = UTHR_ZOMBIE;
 
 	// If the selected thread has a joiner thread, move joiner thread to top of the queue 
-	if (selected_thread->joiner != NULL) {
-		struct uthr *joining_thread = selected_thread->joiner;
-		joining_thread->state = UTHR_RUNNABLE;
+	//if (selected_thread->joiner != NULL) {
+	//	struct uthr *joining_thread = selected_thread->joiner;
+	//	joining_thread->next = NULL;
+	//	joining_thread->prev = NULL;
+	//	printf("JOINING THREAD is %d %d\n", joining_thread->uthr_id, runq.next->uthr_id);
+	//	struct uthr* next = joining_thread;
+	//	while (next != NULL) {
+	//		printf("JOINING thread ID is %d\n", next->uthr_id);
+	//		next = next->next;
+	//	}
 
-		joining_thread->next = runq.next;
-		if (runq.next != NULL) {
-			runq.next->prev = joining_thread;
-		}
+	//	joining_thread->state = UTHR_RUNNABLE;
+
+	//	joining_thread->next = runq.next;
+	//	if (runq.next != NULL) {
+	//		runq.next->prev = joining_thread;
+	//	}
 		
-		runq.next = joining_thread;
-		runq.next->prev = NULL;
-	}
+	//	runq.next = joining_thread;
+	//	runq.next->prev = NULL;
+
+	//	next= runq.next;
+	//	while (next != NULL) {
+	//		printf("RUN QUEUE after Joining is thread ID is %d\n", next->uthr_id);
+	//		next = next->next;
+	//	} 
+	//}
 
 	// Switch back into the scheduler
 	if (swapcontext(&selected_thread->uctx, &sched_uctx) != 0) {
@@ -397,7 +413,7 @@ pthread_exit(void *retval)
 void 
 add_thread(struct uthr *td, struct uthr *queue) 
 {
-        printf("Inside add thread function \n");
+        printf("ADD_THREAD function \n");
 	struct uthr *itr = queue;
 	while (itr != NULL) {
 //		printf("firs chek thread ID is %d\n", itr->uthr_id);
@@ -433,15 +449,13 @@ add_thread(struct uthr *td, struct uthr *queue)
 int
 pthread_join(pthread_t tid, void **retval)
 {
-	printf("Entered pthread_join function\n");
-
         if ((int) tid < 0 || tid >= NUTHR || uthr_array[tid].state == UTHR_FREE) {
             errno = ESRCH;
             return ESRCH;
         }
 
         struct uthr *td = &uthr_array[tid];
-	printf("joining target thread ID %ld and curr_uthr ID is %d\n", tid, curr_uthr->uthr_id);
+	printf("PTHREAD_JOIN: joining target thread ID %d and curr_uthr ID is %d\n", td->uthr_id, curr_uthr->uthr_id);
 	
         if (td->detached) {
             errno = EINVAL;
@@ -465,25 +479,38 @@ pthread_join(pthread_t tid, void **retval)
             current_thread = current_thread->joiner;
         }
 	
-	if (td->joiner != NULL) {
-		printf("Joiner is NULL \n");
+	// Check if the target thread is in the RUNNABLE queue
+	struct uthr* thread_ptr = runq.next;
+	bool found_target = 0;
+	while (thread_ptr != NULL) {
+		if (thread_ptr == td) {
+			printf("Found the thread, which is %d\n", thread_ptr->uthr_id); 
+			found_target = 1;
+			break;
+		} 
+		thread_ptr = thread_ptr->next;
+	}
+	
+	if (!found_target && retval != NULL) {
+		printf("TARGET THREAD not found \n");
 		td->ret_val = uthr_intern_malloc(sizeof(int));
-		*(int *)(td->ret_val) = 5;
+		*(int *)(td->ret_val) = EINVAL;
 		*retval = td->ret_val;
 	}
 
 	// Set the calling thread to be joining
-        printf("current thread is %d \n", curr_uthr->uthr_id);
         curr_uthr->state = UTHR_JOINING;
         td->joiner = curr_uthr;
-	
+
+	makecontext(&sched_uctx, uthr_scheduler, 0);	
 	// Switch to the scheduler
 	if (swapcontext(&td->joiner->uctx, &sched_uctx) != 0) {
 		uthr_exit_errno("Error switching to the scheduler context \n");
 	}         
 
-	printf("End of executing target thread \n");       
+	printf("End of PTHREAD_JOIN freeing target thread \n");       
         if (retval != NULL) {
+           printf("wrong answer, have to manually set this\n");
            td->ret_val = uthr_intern_malloc(sizeof(int));
            *(int *)(td->ret_val) = EINVAL;
            *retval = td->ret_val;
@@ -607,12 +634,11 @@ static void
 uthr_scheduler(void)
 {
  	uthr_assert_SIGPROF_blocked();
-	printf("Uthr_scheduler function\n");
+	printf("UTHR_SCHEDULER function\n");
 	for (;;) {
-		printf("Enter for loop\n");
 		struct uthr *queue = runq.next;
 		while (queue != NULL) {
-			printf("queue ID is %d and curretnt thread ID is  %d\n ", queue->uthr_id, curr_uthr->uthr_id);
+			printf("QUEUE ID is %d \n ", queue->uthr_id);
 			queue = queue->next;
 		}
 
@@ -621,22 +647,59 @@ uthr_scheduler(void)
 			// Selects the current thread in RUNNABLE queue
 			struct uthr *selected_thread = runq.next;
 		        printf("\nscheduler picked thread %d\n", selected_thread->uthr_id);	
-			// Update the current thread to the next available thread
-			if (selected_thread->next != NULL) {
-				runq.next = selected_thread->next;
-			}
-			
+			runq.next = selected_thread->next;
+			selected_thread->next = NULL;
+			selected_thread->prev = NULL;	
+					
 			if (swapcontext(&sched_uctx, &selected_thread->uctx) != 0){
 				uthr_exit_errno("Error switching context to the thread\n");
 			}
+                        
+                        printf("REAPING the zombie Thread if there is one \n");
+			if (selected_thread->state == UTHR_ZOMBIE){			
+				// remove the current thread from the runnable list
+				//if (selected_thread == runq.next) {
+				//	runq.next = selected_thread->next;
+					
+				//	if (runq.next != NULL) {
+				//		runq.next->prev = NULL;
+				//	}
 
-			if (selected_thread->state == UTHR_ZOMBIE){
+				//} 
+				//else {
+				//	if (selected_thread->prev != NULL) {
+				//		selected_thread->prev->next = selected_thread->next;
+				//	}
+
+				//	if (selected_thread->next != NULL) {
+				//		selected_thread->next->prev = selected_thread->prev;
+				//	}
+				//}
+				//selected_thread->next = NULL;	
+				//selected_thread->prev = NULL;
+		
+				if (selected_thread->joiner != NULL) {
+					struct uthr* joined_thread = selected_thread->joiner;
+					joined_thread->state= UTHR_RUNNABLE;
+					joined_thread->prev = NULL;
+					joined_thread->next = runq.next;
+					if (runq.next != NULL) {
+						runq.next->prev = joined_thread;
+					}	
+
+					runq.next = joined_thread;
+					runq.next->prev = NULL;
+				}
+				
+			
+				struct uthr *queue = runq.next;
+                                while (queue != NULL) {
+                                    printf("TRANSITION TO ZOMBIE is %d and curretnt thread ID is  %d\n ", queue->uthr_id, curr_uthr->uthr_id);
+                                    queue = queue->next;
+  				}
+
 				if (selected_thread->detached) {
 					uthr_to_free(selected_thread);					
-				}
-
-				if (selected_thread->joiner != NULL) {
-					selected_thread->joiner->state = UTHR_RUNNABLE;
 				}
 			}
 		}
