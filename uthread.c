@@ -491,11 +491,11 @@ pthread_join(pthread_t tid, void **retval)
 		thread_ptr = thread_ptr->next;
 	}
 	
-	if (!found_target && retval != NULL) {
+	if (!found_target && retval == NULL) {
 		printf("TARGET THREAD not found \n");
-		td->ret_val = uthr_intern_malloc(sizeof(int));
-		*(int *)(td->ret_val) = EINVAL;
-		*retval = td->ret_val;
+		//td->ret_val = uthr_intern_malloc(sizeof(int));
+		//*(int *)(td->ret_val) = EINVAL;
+		//*retval = uthr_intern_malloc(sizeof(int));
 	}
 
 	// Set the calling thread to be joining
@@ -636,6 +636,7 @@ uthr_scheduler(void)
  	uthr_assert_SIGPROF_blocked();
 	printf("UTHR_SCHEDULER function\n");
 	for (;;) {
+		printf("INSIDE THE FOR LOOP\n");
 		struct uthr *queue = runq.next;
 		while (queue != NULL) {
 			printf("QUEUE ID is %d \n ", queue->uthr_id);
@@ -702,6 +703,15 @@ uthr_scheduler(void)
 					uthr_to_free(selected_thread);					
 				}
 			}
+		}
+
+		else{
+			if (swapcontext(&sched_uctx, &curr_uthr->uctx) != 0){
+                                uthr_exit_errno("Error switching context to the current thread\n");
+                        }
+
+			printf("NO MORE THREADS IN THE FUNCTION \n");
+			break;
 		}
  	}
 }
