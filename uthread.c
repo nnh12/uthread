@@ -237,35 +237,6 @@ uthr_start(int tidx)
 	// Transition the thread into the Zombie state
 	selected_thread->state = UTHR_ZOMBIE;
 
-	// If the selected thread has a joiner thread, move joiner thread to top of the queue 
-	//if (selected_thread->joiner != NULL) {
-	//	struct uthr *joining_thread = selected_thread->joiner;
-	//	joining_thread->next = NULL;
-	//	joining_thread->prev = NULL;
-	//	printf("JOINING THREAD is %d %d\n", joining_thread->uthr_id, runq.next->uthr_id);
-	//	struct uthr* next = joining_thread;
-	//	while (next != NULL) {
-	//		printf("JOINING thread ID is %d\n", next->uthr_id);
-	//		next = next->next;
-	//	}
-
-	//	joining_thread->state = UTHR_RUNNABLE;
-
-	//	joining_thread->next = runq.next;
-	//	if (runq.next != NULL) {
-	//		runq.next->prev = joining_thread;
-	//	}
-		
-	//	runq.next = joining_thread;
-	//	runq.next->prev = NULL;
-
-	//	next= runq.next;
-	//	while (next != NULL) {
-	//		printf("RUN QUEUE after Joining is thread ID is %d\n", next->uthr_id);
-	//		next = next->next;
-	//	} 
-	//}
-
 	// Switch back into the scheduler
 	if (swapcontext(&selected_thread->uctx, &sched_uctx) != 0) {
 		uthr_exit_errno("Error swtiching back into the scheduler\n");
