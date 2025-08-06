@@ -229,6 +229,7 @@ uthr_start(int tidx)
 	assert(sigismember(&old_set, SIGPROF));
 	
 	// Sets the current thread to the target thread
+	struct uthr *prev_curr = curr_uthr;
 	curr_uthr = selected_thread;
 	
 	// Execute the specified thread
@@ -238,6 +239,7 @@ uthr_start(int tidx)
 	// Resets the current thread back to the preivous
 	printf("RETURN VALUE OF THREAD is %p\n", selected_thread->ret_val);
 	printf("FINISHED EXECUTING\n");	
+	curr_uthr = prev_curr;	
 
 	// Transition the thread into the Zombie state
 	selected_thread->state = UTHR_ZOMBIE;
@@ -437,10 +439,18 @@ add_thread(struct uthr *td, struct uthr *queue)
 int
 pthread_join(pthread_t tid, void **retval)
 {
-        if ((int) tid < 0 || tid >= NUTHR || uthr_array[tid].state == UTHR_FREE) {
-            errno = ESRCH;
+        if ((int) tid < 0 || tid >= NUTHR) {
+            printf("ERROR WITH THE THREAD ID VALUE of %d\n", (int)tid);
+	    errno = ESRCH;
             return ESRCH;
         }
+
+	if (uthr_array[tid].state == UTHR_FREE) {
+	   void *err= uthr_intern_malloc(sizeof(int));
+           *(int *)(err) = EINVAL;
+           *retval = err;		
+	    return 0;
+	}
 
         struct uthr *td = &uthr_array[tid];
 	printf("PTHREAD_JOIN: joining target thread ID %d and curr_uthr ID is %d\n", td->uthr_id, curr_uthr->uthr_id);
@@ -495,8 +505,10 @@ pthread_join(pthread_t tid, void **retval)
 	}         
 
 	printf("End of PTHREAD_JOIN freeing target thread \n");       
-     
-	*retval = td->ret_val; 
+	if (td->ret_val != NULL) {
+		*retval = td->ret_val;
+	}    	
+ 
 	uthr_to_free(td);
         uthr_intern_free(td->stack_base);
         
