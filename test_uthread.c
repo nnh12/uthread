@@ -43,9 +43,10 @@ thread_function_exit(void *arg)
 void *
 thread_function_join(void *arg)
 {
+	printf("THREAD FUNCTION JOIN\n");
 	pthread_t *thread = arg;
-	int	  *retval = malloc(sizeof(int));
-	*retval = pthread_join(*thread, NULL);
+	//int	  *retval = malloc(sizeof(int));
+	printf("THREAD FUNCTION JOIN type is %d\n", pthread_join(*thread, NULL));
 	return 0;
 }
 
@@ -124,19 +125,20 @@ test_pthread_create_two_functions(void)
 
 	pthread_t 	thread1, thread2;
 	int val1 = 1;
-	int val2 = 2;
+	//int val2 = 2;
 
 	if (pthread_create(&thread1, NULL, thread_function_print, &val1) != 0) {
 		printf("Unexpected error in pthread_create\n");
 	}
 
-	if (pthread_create(&thread2, NULL, thread_function_print, &val2) != 0) {
+	if (pthread_create(&thread2, NULL, thread_function_join, &thread1) != 0) {
 		printf("Unexpected error in pthread_create\n");
 	}
 
-	pthread_join(thread1, NULL);
-	printf("Waiting for the next thread\n");
 	pthread_join(thread2, NULL);
+	//priintf("Waiting for the next thread\n");
+        //printf("RETURN VALUE IS %d\n", pthread_join(thread1, NULL));
+	printf("END OF TEST\n");
 }
 
 
@@ -487,18 +489,19 @@ test_pthread_join_conflict(void)
 		printf("Unexpected error in pthread_create\n");
 		return;
 	}
-
-	retval1 = pthread_join(target, NULL);
-	if (pthread_join(thread, (void **)&retval2) != 0) {
-		printf("Unexpected error in pthread_join\n");
-		return;
-	}
 	
+	retval1 = pthread_join(target, NULL);
+	printf("ON the CURRENT THREAD: JOINING thread 2\n");
+	printf("%d\n", pthread_join(thread, (void **)&retval2) );
+//	if (pthread_join(thread, (void **)&retval2) != 0) {
+//		printf("Unexpected error in pthread_join\n");
+//		return;
+//	}
+//	
 	if (retval2 == NULL) {
 		printf("retval2 is NULL\n");
 		return;
-	}
-	else{
+	} else{
 		printf("retval is not NULL\n");
 	}
 
@@ -587,13 +590,13 @@ main(void)
 	//test_pthread_wait_thread();
 	printf("\n");
 
-	test_pthread_create_two_functions();
+	//test_pthread_create_two_functions();
         //test_pthread_join_invalid();
 	//test_pthread_join_terminated();
 	//test_pthread_join_self();
         //test_pthread_join_circular();
 	//test_pthread_join_detached();
-	//test_pthread_join_conflict();
+	test_pthread_join_conflict();
 	//test_pthread_join_return();
 	printf("\n");
 
