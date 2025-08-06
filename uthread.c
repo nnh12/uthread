@@ -231,7 +231,8 @@ uthr_start(int tidx)
 	printf("Now executing thread function in uthr_start \n");
 	// Execute the specified thread
 	selected_thread->ret_val = selected_thread->start_routine(selected_thread->argp);
-
+	
+	printf("Return VALUE of THREAD is %p\n", selected_thread->ret_val);
 	printf("FINISHED executing\n");	
 	// Transition the thread into the Zombie state
 	selected_thread->state = UTHR_ZOMBIE;
@@ -471,6 +472,7 @@ pthread_join(pthread_t tid, void **retval)
         struct uthr *current_thread = td;
         while (current_thread != NULL) {
             if (current_thread == curr_uthr) {
+		printf("CAN'T JOIN ITSELF\n");
                 if (td->ret_val == NULL) {
                     td->ret_val = uthr_intern_malloc(sizeof(int));
                 }
@@ -493,29 +495,21 @@ pthread_join(pthread_t tid, void **retval)
 	
 	if (!found_target && retval == NULL) {
 		printf("TARGET THREAD not found \n");
-		//td->ret_val = uthr_intern_malloc(sizeof(int));
-		//*(int *)(td->ret_val) = EINVAL;
-		//*retval = uthr_intern_malloc(sizeof(int));
 	}
 
 	// Set the calling thread to be joining
         curr_uthr->state = UTHR_JOINING;
         td->joiner = curr_uthr;
 
-	makecontext(&sched_uctx, uthr_scheduler, 0);	
 	// Switch to the scheduler
+	makecontext(&sched_uctx, uthr_scheduler, 0);	
 	if (swapcontext(&td->joiner->uctx, &sched_uctx) != 0) {
 		uthr_exit_errno("Error switching to the scheduler context \n");
 	}         
 
 	printf("End of PTHREAD_JOIN freeing target thread \n");       
-        if (retval != NULL) {
-           printf("wrong answer, have to manually set this\n");
-           td->ret_val = uthr_intern_malloc(sizeof(int));
-           *(int *)(td->ret_val) = EINVAL;
-           *retval = td->ret_val;
-        }  
- 
+     
+	*retval = td->ret_val; 
 	uthr_to_free(td);
         uthr_intern_free(td->stack_base);
         
