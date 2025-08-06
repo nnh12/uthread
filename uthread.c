@@ -213,9 +213,9 @@ static void
 uthr_start(int tidx) 
 {
  	sigset_t old_set;
-
  	uthr_assert_SIGPROF_blocked();
- 	struct uthr *selected_thread = &uthr_array[tidx];
+ 	
+	struct uthr *selected_thread = &uthr_array[tidx];
 	printf("UTHR_START: executing thread ID of %d\n", selected_thread->uthr_id);        
 	assert(selected_thread->state == UTHR_RUNNABLE);
 
@@ -228,12 +228,17 @@ uthr_start(int tidx)
 		uthr_exit_errno("sigprocmask");
 	assert(sigismember(&old_set, SIGPROF));
 	
-	printf("Now executing thread function in uthr_start \n");
+	// Sets the current thread to the target thread
+	curr_uthr = selected_thread;
+	
 	// Execute the specified thread
+	printf("Now executing thread function in uthr_start \n");
 	selected_thread->ret_val = selected_thread->start_routine(selected_thread->argp);
 	
-	printf("Return VALUE of THREAD is %p\n", selected_thread->ret_val);
-	printf("FINISHED executing\n");	
+	// Resets the current thread back to the preivous
+	printf("RETURN VALUE OF THREAD is %p\n", selected_thread->ret_val);
+	printf("FINISHED EXECUTING\n");	
+
 	// Transition the thread into the Zombie state
 	selected_thread->state = UTHR_ZOMBIE;
 
@@ -370,7 +375,20 @@ pthread_self(void)
 void
 pthread_exit(void *retval)
 {
-	// (Your code goes here.)
+	printf("PTHREAD_EXIT function\n");
+
+	// Set the return value in the current threadread's return value
+	curr_uthr->ret_val = retval;
+	
+	// Set state to be Zombie
+	curr_uthr->state = UTHR_ZOMBIE;        
+
+	// Add the Joining test case
+	// Add the Zombie test case	
+	
+	if (swapcontext(&curr_uthr->uctx, &sched_uctx) != 0) {
+		uthr_exit_errno("Error switching back to the scheduler's context");
+	}
 
 	/*
 	 * Since pthread_exit is declared as a function that never
@@ -378,7 +396,6 @@ pthread_exit(void *retval)
 	 * function's implementation never returns.
 	 */
 	for (;;);
-	(void) retval;
 }
 
 
@@ -386,9 +403,9 @@ void
 add_thread(struct uthr *td, struct uthr *queue) 
 {
         printf("ADD_THREAD function \n");
+	
 	struct uthr *itr = queue;
 	while (itr != NULL) {
-//		printf("firs chek thread ID is %d\n", itr->uthr_id);
 		itr = itr->next;
 	}
 
@@ -413,7 +430,6 @@ add_thread(struct uthr *td, struct uthr *queue)
 
        itr = queue;
        while (itr != NULL) {
-  //         printf("thead ID is %d", itr->uthr_id);
            itr = itr->next;
        }
 }
@@ -623,27 +639,7 @@ uthr_scheduler(void)
                         
                         printf("REAPING the zombie Thread if there is one \n");
 			if (selected_thread->state == UTHR_ZOMBIE){			
-				// remove the current thread from the runnable list
-				//if (selected_thread == runq.next) {
-				//	runq.next = selected_thread->next;
-					
-				//	if (runq.next != NULL) {
-				//		runq.next->prev = NULL;
-				//	}
-
-				//} 
-				//else {
-				//	if (selected_thread->prev != NULL) {
-				//		selected_thread->prev->next = selected_thread->next;
-				//	}
-
-				//	if (selected_thread->next != NULL) {
-				//		selected_thread->next->prev = selected_thread->prev;
-				//	}
-				//}
-				//selected_thread->next = NULL;	
-				//selected_thread->prev = NULL;
-		
+				// Appends the joining thread to the front of the queue
 				if (selected_thread->joiner != NULL) {
 					struct uthr* joined_thread = selected_thread->joiner;
 					joined_thread->state= UTHR_RUNNABLE;
@@ -660,7 +656,7 @@ uthr_scheduler(void)
 			
 				struct uthr *queue = runq.next;
                                 while (queue != NULL) {
-                                    printf("TRANSITION TO ZOMBIE is %d and curretnt thread ID is  %d\n ", queue->uthr_id, curr_uthr->uthr_id);
+                                    printf("ZOMBIE is %d and curretnt thread ID is  %d\n ", queue->uthr_id, curr_uthr->uthr_id);
                                     queue = queue->next;
   				}
 
