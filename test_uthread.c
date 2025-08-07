@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
+#include "uthread_internal.h"
 
 typedef struct {
 	char* filename;
@@ -492,12 +492,12 @@ test_pthread_join_conflict(void)
 	
 	retval1 = pthread_join(target, NULL);
 	printf("ON the CURRENT THREAD: JOINING thread 2\n");
-	printf("%d\n", pthread_join(thread, (void **)&retval2) );
-//	if (pthread_join(thread, (void **)&retval2) != 0) {
-//		printf("Unexpected error in pthread_join\n");
-//		return;
-//	}
-//	
+
+	if (pthread_join(thread, (void **)&retval2) != 0) {
+		printf("Unexpected error in pthread_join\n");
+		return;
+	}
+	
 	if (retval2 == NULL) {
 		printf("retval2 is NULL\n");
 		return;
@@ -577,6 +577,32 @@ test_pthread_exit_return(void)
 	}
 }
 
+
+void test_uthr_intern_malloc(void) {
+    printf("TEST uthr_intern_malloc - allocate and free memory:\n");
+
+    // Allocate memory
+    int *test_ptr = (int *)uthr_intern_malloc(sizeof(int));
+    if (test_ptr == NULL) {
+        printf("FAILED: uthr_intern_malloc returned NULL\n");
+        return;
+    }
+
+    // Write to the allocated memory
+    *test_ptr = 42;
+
+    // Verify the value
+    if (*test_ptr == 42) {
+        printf("PASSED: Memory allocation and write successful\n");
+    } else {
+        printf("FAILED: Memory write/read mismatch\n");
+    }
+
+    // Free the allocated memory
+    uthr_intern_free(test_ptr);
+    printf("TEST uthr_intern_malloc completed\n");
+}
+
 int
 main(void)
 {
@@ -596,7 +622,8 @@ main(void)
 	//test_pthread_join_self();
         //test_pthread_join_circular();
 	//test_pthread_join_detached();
-	test_pthread_join_conflict();
+	//test_pthread_join_conflict();
+        test_uthr_intern_malloc();
 	//test_pthread_join_return();
 	printf("\n");
 
