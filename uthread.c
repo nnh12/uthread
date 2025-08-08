@@ -227,20 +227,17 @@ uthr_start(int tidx)
  	if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, &old_set) == -1)
 		uthr_exit_errno("sigprocmask");
 	assert(sigismember(&old_set, SIGPROF));
-	
-	// Sets the current thread to the target thread
-	struct uthr *prev_curr = curr_uthr;
-	curr_uthr = selected_thread;
-	
+		
 	// Execute the specified thread
 	printf("Now executing thread function in uthr_start \n");
-	selected_thread->ret_val = selected_thread->start_routine(selected_thread->argp);
+	void *retval =  selected_thread->start_routine(selected_thread->argp);
 	
+	int val = (int)(intptr_t)retval;
+	selected_thread->ret_val = &val;
 	// Resets the current thread back to the preivous
-	printf("RETURN VALUE OF THREAD is %p\n", selected_thread->ret_val);
+	printf("RETURN VALUE OF THREAD is %d\n", *(int *)selected_thread->ret_val);
 	printf("FINISHED EXECUTING\n");	
-	curr_uthr = prev_curr;	
-
+	
 	// Transition the thread into the Zombie state
 	selected_thread->state = UTHR_ZOMBIE;
 
@@ -438,61 +435,58 @@ add_thread(struct uthr *td, struct uthr *queue)
 
 int
 pthread_join(pthread_t tid, void **retval)
-{
+{;
         if ((int) tid < 0 || tid >= NUTHR) {
             printf("ERROR WITH THE THREAD ID VALUE of %d\n", (int)tid);
 	    errno = ESRCH;
             return ESRCH;
         }
 
-	if (uthr_array[tid].state == UTHR_FREE) {
-	   void *err= uthr_intern_malloc(sizeof(int));
-           *(int *)(err) = EINVAL;
-           *retval = err;		
-	    return 0;
-	}
+	struct uthr *td = &uthr_array[tid];
 
-        struct uthr *td = &uthr_array[tid];
+//	if (uthr_array[tid].state == UTHR_FREE) {
+//	    if (td->ret_val == NULL) {
+//                td->ret_val = uthr_intern_malloc(sizeof(int));
+//	    }
+	    
+//            *(int *)td->ret_val = EINVAL;
+//     	    *retval = td->ret_val;
+//	    return 0;
+//	}
+
 	printf("PTHREAD_JOIN: joining target thread ID %d and curr_uthr ID is %d\n", td->uthr_id, curr_uthr->uthr_id);
-	
+
         if (td->detached) {
             errno = EINVAL;
             return EINVAL;
         }
-        
-        if (td == curr_uthr) {
-            errno = EDEADLK;
-            return EDEADLK;
-        }
-
+       
 	// Check if there is a cyclical join
         struct uthr *current_thread = td;
         while (current_thread != NULL) {
             if (current_thread == curr_uthr) {
-		printf("CAN'T JOIN ITSELF\n");
-                if (td->ret_val == NULL) {
-                    td->ret_val = uthr_intern_malloc(sizeof(int));
-                }
-                *(int *)(td->ret_val) = EDEADLK;
-            }
+		printf("CAN'T JOIN ITSELF \n");
+		(void)retval;
+		return 0;
+	    }
             current_thread = current_thread->joiner;
         }
 	
 	// Check if the target thread is in the RUNNABLE queue
-	struct uthr* thread_ptr = runq.next;
-	bool found_target = 0;
-	while (thread_ptr != NULL) {
-		if (thread_ptr == td) {
-			printf("Found the thread, which is %d\n", thread_ptr->uthr_id); 
-			found_target = 1;
-			break;
-		} 
-		thread_ptr = thread_ptr->next;
-	}
+//	struct uthr* thread_ptr = runq.next;
+//	bool found_target = 0;
+//	while (thread_ptr != NULL) {
+//		if (thread_ptr == td) {
+//			printf("Found the thread, which is %d\n", thread_ptr->uthr_id); 
+//			found_target = 1;
+//			break;
+//		} 
+//		thread_ptr = thread_ptr->next;
+//	}
 	
-	if (!found_target && retval == NULL) {
-		printf("TARGET THREAD not found \n");
-	}
+//	if (!found_target && retval == NULL) {
+//		printf("TARGET THREAD not found \n");
+//	}
 
 	// Set the calling thread to be joining
         curr_uthr->state = UTHR_JOINING;
@@ -505,13 +499,12 @@ pthread_join(pthread_t tid, void **retval)
 	}         
 
 	printf("End of PTHREAD_JOIN freeing target thread \n");       
-	if (td->ret_val != NULL) {
-		*retval = td->ret_val;
-	}    	
+//	if (td->ret_val != NULL) {
+//		*retval = td->ret_val;
+//	}    	
  
 	uthr_to_free(td);
-        uthr_intern_free(td->stack_base);
-        
+        uthr_intern_free(td->stack_base);      
 	return (0);
 }
 
