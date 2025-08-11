@@ -45,9 +45,11 @@ thread_function_join(void *arg)
 {
 	printf("THREAD FUNCTION JOIN\n");
 	pthread_t *thread = arg;
-	//int	  *retval = malloc(sizeof(int));
-	printf("THREAD FUNCTION JOIN type is %d\n", pthread_join(*thread, NULL));
-	return 0;
+	int *status = uthr_intern_malloc(sizeof(int));
+
+	*status = pthread_join(*thread, NULL);
+	printf("ihere %d\n", *status);
+	return status; 
 }
 
 
@@ -425,7 +427,9 @@ test_pthread_join_circular(void)
 		return;
 	}
 
+	
 	retval1 = pthread_join(thread, (void **)&retval2);
+	
 	if ((retval1 == 0 && *retval2 == EDEADLK) ||
 	    (retval1 == EDEADLK && *retval2 == 0)) {
 		printf("PASSED\n");
@@ -475,7 +479,7 @@ test_pthread_join_conflict(void)
 {
 	pthread_t thread, target;
 	int	  retval1;
-	int	 *retval2;
+	int	 *retval2 = NULL;
 	int x = 1;
 	printf(
 	    "TEST pthread_join - thread is already joining with target thread: ");
@@ -620,10 +624,10 @@ main(void)
         //test_pthread_join_invalid();
 	//test_pthread_join_terminated();
 	//test_pthread_join_self();
-        //test_pthread_join_circular();
+        test_pthread_join_circular();
 	//test_pthread_join_detached();
 	//test_pthread_join_conflict();
-        test_uthr_intern_malloc();
+        //test_uthr_intern_malloc();
 	//test_pthread_join_return();
 	printf("\n");
 

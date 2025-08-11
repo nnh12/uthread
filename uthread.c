@@ -231,11 +231,11 @@ uthr_start(int tidx)
 	// Execute the specified thread
 	printf("Now executing thread function in uthr_start \n");
 	void *retval =  selected_thread->start_routine(selected_thread->argp);
-	
-	int val = (int)(intptr_t)retval;
-	selected_thread->ret_val = &val;
+	int ret = *(int *)retval;
+
+	selected_thread->ret_val = &ret;
 	// Resets the current thread back to the preivous
-	printf("RETURN VALUE OF THREAD is %d\n", *(int *)selected_thread->ret_val);
+	printf("RETURN VALUE OF THREAD is %d\n", *(int *)selected_thread->ret_val) ;
 	printf("FINISHED EXECUTING\n");	
 	
 	// Transition the thread into the Zombie state
@@ -436,18 +436,8 @@ pthread_join(pthread_t tid, void **retval)
         }
 
 	struct uthr *td = &uthr_array[tid];
-
-//	if (uthr_array[tid].state == UTHR_FREE) {
-//	    if (td->ret_val == NULL) {
-//                td->ret_val = uthr_intern_malloc(sizeof(int));
-//	    }
-	    
-//            *(int *)td->ret_val = EINVAL;
-//     	    *retval = td->ret_val;
-//	    return 0;
-//	}
-
 	printf("PTHREAD_JOIN: joining target thread ID %d and curr_uthr ID is %d\n", td->uthr_id, curr_uthr->uthr_id);
+
 	
 	if (retval == NULL) {
 	    printf("INSIDE MINI THREAD\n");
@@ -461,16 +451,10 @@ pthread_join(pthread_t tid, void **retval)
             return EINVAL;
         }
        
-	// Check if there is a cyclical join
-        struct uthr *current_thread = td;
-        while (current_thread != NULL) {
-            if (current_thread == curr_uthr) {
-		printf("CAN'T JOIN ITSELF \n");
-		(void)retval;
-		return EDEADLK;
-	    }
-            current_thread = current_thread->joiner;
-        }
+	if (td == curr_uthr) {
+	    printf("CAN'T JOIN ITSELF\n");
+	    return EDEADLK;
+	}
 	
 	// Set the calling thread to be joining
         curr_uthr->state = UTHR_JOINING;
@@ -483,9 +467,26 @@ pthread_join(pthread_t tid, void **retval)
 	}         
 
 	printf("End of PTHREAD_JOIN freeing target thread \n");          	
- 
+
+	if (td->ret_val != NULL && retval != NULL){
+	    int return_val = *(int *)td->ret_val;
+	    *retval = uthr_intern_malloc(sizeof(int));
+	    *(int *)(*retval) = return_val;
+	    
+	    printf("ALLOCATING RETURN VALUE IS %d\n,", return_val );
+	}
+		
+	if (retval == NULL) {
+	    printf("INSIDE MINI THREAD END \n");
+	} 
+	else {
+	    printf("INSIDE MAIN THREAD END \n");
+	}
+
 	uthr_to_free(td);
         uthr_intern_free(td->stack_base);      
+
+	
 	return (0);
 }
 
