@@ -321,13 +321,6 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
            td->next = NULL;
        }
 
-//       td->next = runq.next;
-//       if (runq.next != NULL) {
-//           runq.next->prev = td;
-//       }
-//       runq.next = td;
-//       td->prev = &runq;
-
        // Return the thread ID
        *tidp = td - uthr_array;
 
@@ -435,7 +428,7 @@ add_thread(struct uthr *td, struct uthr *queue)
 
 int
 pthread_join(pthread_t tid, void **retval)
-{;
+{
         if ((int) tid < 0 || tid >= NUTHR) {
             printf("ERROR WITH THE THREAD ID VALUE of %d\n", (int)tid);
 	    errno = ESRCH;
@@ -455,6 +448,13 @@ pthread_join(pthread_t tid, void **retval)
 //	}
 
 	printf("PTHREAD_JOIN: joining target thread ID %d and curr_uthr ID is %d\n", td->uthr_id, curr_uthr->uthr_id);
+	
+	if (retval == NULL) {
+	    printf("INSIDE MINI THREAD\n");
+	}
+	else{
+	    printf("INSIDE MAIN THREAD\n");
+	}
 
         if (td->detached) {
             errno = EINVAL;
@@ -467,27 +467,11 @@ pthread_join(pthread_t tid, void **retval)
             if (current_thread == curr_uthr) {
 		printf("CAN'T JOIN ITSELF \n");
 		(void)retval;
-		return 0;
+		return EDEADLK;
 	    }
             current_thread = current_thread->joiner;
         }
 	
-	// Check if the target thread is in the RUNNABLE queue
-//	struct uthr* thread_ptr = runq.next;
-//	bool found_target = 0;
-//	while (thread_ptr != NULL) {
-//		if (thread_ptr == td) {
-//			printf("Found the thread, which is %d\n", thread_ptr->uthr_id); 
-//			found_target = 1;
-//			break;
-//		} 
-//		thread_ptr = thread_ptr->next;
-//	}
-	
-//	if (!found_target && retval == NULL) {
-//		printf("TARGET THREAD not found \n");
-//	}
-
 	// Set the calling thread to be joining
         curr_uthr->state = UTHR_JOINING;
         td->joiner = curr_uthr;
@@ -498,10 +482,7 @@ pthread_join(pthread_t tid, void **retval)
 		uthr_exit_errno("Error switching to the scheduler context \n");
 	}         
 
-	printf("End of PTHREAD_JOIN freeing target thread \n");       
-//	if (td->ret_val != NULL) {
-//		*retval = td->ret_val;
-//	}    	
+	printf("End of PTHREAD_JOIN freeing target thread \n");          	
  
 	uthr_to_free(td);
         uthr_intern_free(td->stack_base);      
