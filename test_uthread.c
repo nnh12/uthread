@@ -493,10 +493,12 @@ test_pthread_join_conflict(void)
 		printf("Unexpected error in pthread_create\n");
 		return;
 	}
-	
-	retval1 = pthread_join(target, NULL);
+
+        retval1 = 0;	
+//	retval1 = pthread_join(target, NULL);
 	printf("ON the CURRENT THREAD: JOINING thread 2\n");
 
+	printf("ON THE MAIN THREAD ABOUT TO JOIN TARGET\n");
 	if (pthread_join(thread, (void **)&retval2) != 0) {
 		printf("Unexpected error in pthread_join\n");
 		return;
@@ -624,9 +626,9 @@ main(void)
         //test_pthread_join_invalid();
 	//test_pthread_join_terminated();
 	//test_pthread_join_self();
-        test_pthread_join_circular();
-	//test_pthread_join_detached();
-	//test_pthread_join_conflict();
+        //test_pthread_join_circular();
+        //test_pthread_join_detached();
+	test_pthread_join_conflict();
         //test_uthr_intern_malloc();
 	//test_pthread_join_return();
 	printf("\n");

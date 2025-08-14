@@ -230,13 +230,18 @@ uthr_start(int tidx)
 		
 	// Execute the specified thread
 	printf("Now executing thread function in uthr_start \n");
-	void *retval =  selected_thread->start_routine(selected_thread->argp);
-	int ret = *(int *)retval;
+	void *retval = selected_thread->start_routine(selected_thread->argp);
+	
+	if (retval != NULL) {
+	    int ret = *(int *)retval;
+            selected_thread->ret_val = &ret;
+            printf("RETURN VALUE OF THREAD is %d\n", *(int *)selected_thread->ret_val);
+	} else {
+	    selected_thread->ret_val = NULL;
+	}
 
-	selected_thread->ret_val = &ret;
 	// Resets the current thread back to the preivous
-	printf("RETURN VALUE OF THREAD is %d\n", *(int *)selected_thread->ret_val) ;
-	printf("FINISHED EXECUTING\n");	
+	printf("FINISHED EXECUTING\n");
 	
 	// Transition the thread into the Zombie state
 	selected_thread->state = UTHR_ZOMBIE;
@@ -437,13 +442,19 @@ pthread_join(pthread_t tid, void **retval)
 
 	struct uthr *td = &uthr_array[tid];
 	printf("PTHREAD_JOIN: joining target thread ID %d and curr_uthr ID is %d\n", td->uthr_id, curr_uthr->uthr_id);
-
 	
 	if (retval == NULL) {
-	    printf("INSIDE MINI THREAD\n");
+	    printf("INSIDE 1st THREAD\n");
 	}
 	else{
-	    printf("INSIDE MAIN THREAD\n");
+	    printf("INSIDE 2nd THREAD\n");
+	}
+
+        if (td->state == UTHR_FREE) {
+            if (retval == NULL) {
+	    }
+	    printf("THREAD IS ALREADY FREE\n");
+            return 0;
 	}
 
         if (td->detached) {
@@ -485,7 +496,6 @@ pthread_join(pthread_t tid, void **retval)
 
 	uthr_to_free(td);
         uthr_intern_free(td->stack_base);      
-
 	
 	return (0);
 }
