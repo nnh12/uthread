@@ -46,10 +46,8 @@ thread_function_join(void *arg)
 	printf("THREAD FUNCTION JOIN\n");
 	pthread_t *thread = arg;
 	int *status = uthr_intern_malloc(sizeof(int));
-
 	*status = pthread_join(*thread, NULL);
-	printf("ihere %d\n", *status);
-	return status; 
+	return (status); 
 }
 
 
@@ -479,7 +477,7 @@ test_pthread_join_conflict(void)
 {
 	pthread_t thread, target;
 	int	  retval1;
-	int	 *retval2 = NULL;
+	int	 *retval2;
 	int x = 1;
 	printf(
 	    "TEST pthread_join - thread is already joining with target thread: ");
@@ -494,23 +492,22 @@ test_pthread_join_conflict(void)
 		return;
 	}
 
-        retval1 = 0;	
-//	retval1 = pthread_join(target, NULL);
+	retval1 = pthread_join(target, NULL);
 	printf("ON the CURRENT THREAD: JOINING thread 2\n");
+	printf("ON THE MAIN THREAD ABOUT TO JOIN THREAD 2\n");
 
-	printf("ON THE MAIN THREAD ABOUT TO JOIN TARGET\n");
 	if (pthread_join(thread, (void **)&retval2) != 0) {
 		printf("Unexpected error in pthread_join\n");
 		return;
 	}
 	
+        printf("FINSIHED ALL THE JOINS\n");
 	if (retval2 == NULL) {
 		printf("retval2 is NULL\n");
 		return;
 	} else{
 		printf("retval is not NULL\n");
 	}
-
 
 	if ((retval1 == 0 && *retval2 == EINVAL) ||
 	    (retval1 == EINVAL && *retval2 == 0)) {
