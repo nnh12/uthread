@@ -383,6 +383,7 @@ pthread_exit(void *retval)
 	 * returns, the compiler requires us to ensure that the
 	 * function's implementation never returns.
 	 */
+        printf("BEFORE PTHREAD EXIT FOR LOOP\n");
 	for (;;);
 }
 
@@ -605,6 +606,7 @@ uthr_scheduler(void)
 {
  	uthr_assert_SIGPROF_blocked();
 	printf("UTHR_SCHEDULER function\n");
+
 	for (;;) {
 		printf("INSIDE THE FOR LOOP\n");
 		struct uthr *queue = runq.next;
@@ -617,17 +619,21 @@ uthr_scheduler(void)
 		if (runq.next != NULL) {
 			// Selects the current thread in RUNNABLE queue
 			struct uthr *selected_thread = runq.next;
+
 		        printf("\nscheduler picked thread %d\n", selected_thread->uthr_id);	
 			runq.next = selected_thread->next;
 			selected_thread->next = NULL;
 			selected_thread->prev = NULL;	
+			
+			curr_uthr = selected_thread;
 					
 			if (swapcontext(&sched_uctx, &selected_thread->uctx) != 0){
 				uthr_exit_errno("Error switching context to the thread\n");
 			}
                         
                         printf("REAPING the zombie Thread if there is one \n");
-			if (selected_thread->state == UTHR_ZOMBIE){			
+			if (selected_thread->state == UTHR_ZOMBIE){
+                                printf("THREAD IS A ZOMBIE\n");			
 				// Appends the joining thread to the front of the queue
 				if (selected_thread->joiner != NULL) {
 					struct uthr* joined_thread = selected_thread->joiner;
@@ -644,6 +650,7 @@ uthr_scheduler(void)
 				
 			
 				struct uthr *queue = runq.next;
+				printf("FINDS THE NEXT THREAD\n");
                                 while (queue != NULL) {
                                     printf("ZOMBIE is %d and curretnt thread ID is  %d\n ", queue->uthr_id, curr_uthr->uthr_id);
                                     queue = queue->next;
