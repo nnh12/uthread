@@ -432,6 +432,10 @@ pthread_join(pthread_t tid, void **retval)
             return ESRCH;
         }
 
+        if (tid == 0) {
+	    return EDEADLK;
+	}
+
 	struct uthr *td = &uthr_array[tid];
 	printf("PTHREAD_JOIN: joining target thread ID %d and curr_uthr ID is %d\n", td->uthr_id, curr_uthr->uthr_id);
 	
