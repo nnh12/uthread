@@ -230,17 +230,8 @@ uthr_start(int tidx)
 		
 	// Execute the specified thread
 	printf("Now executing thread function in uthr_start \n");
-	void *retval = selected_thread->start_routine(selected_thread->argp);
-	
-	if (retval != NULL) {
-	    int ret = *(int *)retval;
-            selected_thread->ret_val = &ret;
-            printf("RETURN VALUE OF THREAD is %d\n", *(int *)selected_thread->ret_val);
-	} else {
-	    selected_thread->ret_val = NULL;
-	}
-
-	// Resets the current thread back to the preivous
+	selected_thread->ret_val  = selected_thread->start_routine(selected_thread->argp);
+		// Resets the current thread back to the preivous
 	printf("FINISHED EXECUTING\n");
 	
 	// Transition the thread into the Zombie state
@@ -484,11 +475,8 @@ pthread_join(pthread_t tid, void **retval)
 	printf("End of PTHREAD_JOIN freeing target thread \n");          	
 
 	if (td->ret_val != NULL && retval != NULL){
-	    int return_val = *(int *)td->ret_val;
 	    *retval = uthr_intern_malloc(sizeof(int));
-	    *(int *)(*retval) = return_val;
-	    
-	    printf("ALLOCATING RETURN VALUE IS %d\n,", return_val );
+	    *retval = td->ret_val;
 	}
 		
 	if (retval == NULL) {
