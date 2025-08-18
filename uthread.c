@@ -451,10 +451,14 @@ pthread_join(pthread_t tid, void **retval)
 	}
 
         if (td->state == UTHR_FREE) {
-            if (retval == NULL) {
-	    }
+            if (retval != NULL) {
+	        printf("RETVAL IS NOT NULL\n");
+            } 
+	    else {
+                printf("RETVAL IS NULL\n");
+            }
 	    printf("THREAD IS ALREADY FREE\n");
-            return 0;
+            return EINVAL;
 	}
 
         if (td->detached) {
@@ -488,10 +492,10 @@ pthread_join(pthread_t tid, void **retval)
 	}
 		
 	if (retval == NULL) {
-	    printf("INSIDE MINI THREAD END \n");
+	    printf("INSIDE 1ST THREAD END \n");
 	} 
 	else {
-	    printf("INSIDE MAIN THREAD END \n");
+	    printf("INSIDE 2ND THREAD END \n");
 	}
 
 	uthr_to_free(td);
