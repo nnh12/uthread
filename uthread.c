@@ -511,7 +511,7 @@ sched_yield(void)
                 printf("move the current thread to end of queue\n");	
 		// Move the current thread to the end of the queue
 		struct uthr* end = runq.next;
-		while (end != NULL) {
+		while (end->next != NULL) {
 			end = end->next;
 		} 
 		
