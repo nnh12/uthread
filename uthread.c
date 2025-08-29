@@ -479,20 +479,13 @@ pthread_join(pthread_t tid, void **retval)
 
 	printf("End of PTHREAD_JOIN freeing target thread \n");          	
 
+	uthr_to_free(td);
+	uthr_intern_free(td->stack_base);
+
 	if (td->ret_val != NULL && retval != NULL){
 	    *retval = uthr_intern_malloc(sizeof(int));
 	    *retval = td->ret_val;
 	}
-		
-	if (retval == NULL) {
-	    printf("INSIDE 1ST THREAD END \n");
-	} 
-	else {
-	    printf("INSIDE 2ND THREAD END \n");
-	}
-
-	uthr_to_free(td);
-        uthr_intern_free(td->stack_base);      
 	
 	return (0);
 }
