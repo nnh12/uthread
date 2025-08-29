@@ -289,10 +289,10 @@ void
 test_pthread_wait_thread(void)
 {
 	pthread_t thread;
-
+	int x = 5;
 	printf("TEST pthread_wait_thread - wait for thread to finish executing: ");
 	
-	if (pthread_create(&thread, NULL, thread_function_print, NULL) != 0) {
+	if (pthread_create(&thread, NULL, thread_function_print, &x) != 0) {
 		printf("Unexpected error in pthread_create\n");
 		return;
 	}
