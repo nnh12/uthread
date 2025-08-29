@@ -524,7 +524,7 @@ sched_yield(void)
 	}
 	
 	// Switch to the scheduler context
-        makecontext(&sched_uctx, uthr_scheduler, 0);
+    makecontext(&sched_uctx, uthr_scheduler, 0);
 	if (swapcontext(&current_run_thread->uctx, &sched_uctx) == - 1) {
 		uthr_exit_errno("Error switching the scheduler context\n");
 	}
