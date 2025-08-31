@@ -653,6 +653,8 @@ uthr_scheduler(void)
 			
 				struct uthr *queue = runq.next;
 				printf("FINDS THE NEXT THREAD\n");
+				curr_uthr = &uthr_array[0];
+
                                 while (queue != NULL) {
                                     printf("ZOMBIE is %d and curretnt thread ID is  %d\n ", queue->uthr_id, curr_uthr->uthr_id);
                                     queue = queue->next;
@@ -665,6 +667,7 @@ uthr_scheduler(void)
 		}
 
 		else{
+
 			if (swapcontext(&sched_uctx, &curr_uthr->uctx) != 0){
                                 uthr_exit_errno("Error switching context to the current thread\n");
                         }
@@ -774,6 +777,7 @@ uthr_init(void)
 	curr_uthr->prev = NULL;
         curr_uthr->next = NULL;
         curr_uthr->uthr_id = 0;
+        curr_uthr->detached = false;
 
         if (getcontext(&curr_uthr->uctx) == -1) {
 	    uthr_exit_errno("getcontext");
