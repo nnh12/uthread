@@ -490,7 +490,8 @@ pthread_join(pthread_t tid, void **retval)
 	    *retval = uthr_intern_malloc(sizeof(int));
 	    *retval = td->ret_val;
 	}
-	
+
+	curr_uthr = &uthr_array[0];
 	return (0);
 }
 
