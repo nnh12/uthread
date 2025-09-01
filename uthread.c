@@ -462,6 +462,8 @@ pthread_join(pthread_t tid, void **retval)
 	}
 
         if (td->detached) {
+	     td->state = UTHR_ZOMBIE;
+	     uthr_to_free(td);
             errno = EINVAL;
             return EINVAL;
         }
