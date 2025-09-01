@@ -310,10 +310,10 @@ test_pthread_detach_zombie(void)
 {
 	pthread_t thread;
 	int	  retval;
-
+	int 	  val = 0;
 	printf("TEST pthread_detach - thread is already a zombie: ");
 
-	if (pthread_create(&thread, NULL, thread_function_print, NULL) != 0) {
+	if (pthread_create(&thread, NULL, thread_function_print, &val) != 0) {
 		printf("Unexpected error in pthread_create\n");
 		return;
 	}
