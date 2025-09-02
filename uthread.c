@@ -416,6 +416,9 @@ pthread_join(pthread_t tid, void **retval)
 	struct uthr *td = &uthr_array[tid];
 
         if (td->joiner != NULL) {
+	    if (td->joiner->state == UTHR_JOINING) {
+	        return EINVAL;
+	    }
 	    return ESRCH;
 	}
 	
