@@ -599,8 +599,6 @@ uthr_scheduler(void)
 					runq.next->prev = NULL;
 				}
 				
-			
-				struct uthr *queue = runq.next;
 				curr_uthr = &uthr_array[0];
 
 				if (selected_thread->detached) {
@@ -764,9 +762,10 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
             * See the manual page for dlopen().
             */
 	   *addrp = dlsym(RTLD_NEXT, symbol);
-	   if (*addrp == NULL) {
-               uthr_exit_errno("failed to find symbol %s: %s\n", symbol,
-		    dlerror());
+           if (*addrp == NULL) {
+               char buf[256];
+	       snprintf(buf, sizeof(buf), "failed to find symbol %s: %s\n", symbol, dlerror());
+               uthr_exit_errno(buf);
 	   }
         
 	} else {
