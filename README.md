@@ -1,9 +1,15 @@
-# A User-level Implementation of Pthreads Library
+# Uthread
 
-The most common multithreading library in Linux is pthreads, which is implemented by kernel-level threads.
-This is a my own custom implementation of pthreads on user level. I wrote my own thread scheduler to handle 
-multiple threading and logic to to manage threads.
+This is my own custom threading library that I implemeneted from scratch. Just like Java threads or Linux Pthreads,
+my library supports API's to create, join, detach yield threads concurrently. This also includes a thread scheduler that will manages context switching between the calling thread and the target threads.
 
-The heart of all pthread APIs are in uthread.c
+The heart of all pthread APIs are in 'uthread.c', which also includes the scheduler.
+'spin.c', 'test_uthread.c', and 'tiny.c' are separate scripts to test my uthread library.
 
 To compile run: make
+To run test cases: ./test_uthread
+
+## TODO
+- Add preemption using SIGPROF timer
+- Complete test cases for `spin.c` and `tiny.c`
+- Complete wrappers in `unix.c` to handle blocking operations for wrappers in Unix I/O functions
