@@ -22,7 +22,6 @@ thread_function_null(void *arg)
 void *
 thread_function_sleep(void *arg)
 {
-	printf("WOWWW inside the function sleep thread \n");
 	(void)arg;
 	sleep(1);
 	return (NULL);
@@ -43,7 +42,6 @@ thread_function_exit(void *arg)
 void *
 thread_function_join(void *arg)
 {
-	printf("THREAD FUNCTION JOIN\n");
 	pthread_t *thread = arg;
 	int *status = uthr_intern_malloc(sizeof(int));
 	*status = pthread_join(*thread, NULL);
@@ -298,7 +296,6 @@ test_pthread_wait_thread(void)
 	}
 
 	pthread_join(thread, NULL);
-	printf("End of the test_pthread_wait_thread test \n");
 }
 
 
@@ -320,7 +317,6 @@ test_pthread_detach_zombie(void)
 
 	// Yield to the above created thread, which will immediately return.
 	sched_yield();
-	printf("End of th test_pthread_detach_zombie test \n");
 	
 	retval = pthread_detach(thread);
 	if (retval == 0) {
@@ -493,22 +489,12 @@ test_pthread_join_conflict(void)
 	}
 
 	retval1 = pthread_join(target, NULL);
-	printf("ON the CURRENT THREAD: JOINING thread 2\n");
-	printf("ON THE MAIN THREAD ABOUT TO JOIN THREAD 2\n");
 
 	if (pthread_join(thread, (void **)&retval2) != 0) {
 		printf("Unexpected error in pthread_join\n");
 		return;
 	}
 	
-        printf("FINSIHED ALL THE JOINS\n");
-	if (retval2 == NULL) {
-		printf("retval2 is NULL\n");
-		return;
-	} else{
-		printf("retval is not NULL\n");
-	}
-
 	if ((retval1 == 0 && *retval2 == EINVAL) ||
 	    (retval1 == EINVAL && *retval2 == 0)) {
 		printf("PASSED\n");
