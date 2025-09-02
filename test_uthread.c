@@ -610,25 +610,24 @@ int
 main(void)
 {
         //test_pthread_create_function();
-	//test_pthread_create_invalidattr();
-	//test_pthread_create_threadlimit();
-	//test_pthread_detach_invalid();
-	//test_pthread_detach_terminated();
+	test_pthread_create_invalidattr();
+	test_pthread_create_threadlimit();
+	test_pthread_detach_invalid();
+	test_pthread_detach_terminated();
         //test_pthread_detach_detached();
-	//test_pthread_detach_zombie();
-	//test_pthread_wait_thread();
+	test_pthread_detach_zombie();
+	test_pthread_wait_thread();
 	printf("\n");
 
-	//test_pthread_create_two_functions();
-        //test_pthread_join_invalid();
-	//test_pthread_join_terminated();
-	//test_pthread_join_self();
-        //test_pthread_join_circular();
-        //test_pthread_join_detached();
+       test_pthread_join_invalid();
+	test_pthread_join_terminated();
+	test_pthread_join_self();
+       test_pthread_join_circular();
+       test_pthread_join_detached();
 	test_pthread_join_conflict();
-        //test_uthr_intern_malloc();
-	//test_pthread_join_return();
+       test_uthr_intern_malloc();
+       test_pthread_join_return();
 	printf("\n");
 
-	//test_pthread_exit_return();
+       test_pthread_exit_return();
 }
