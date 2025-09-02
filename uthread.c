@@ -155,18 +155,40 @@ uthr_intern_free(void *ptr)
  *
  * @param td Pointer to the thread to be transitioned to zombie state.
  */
-// static void
-// uthr_to_zombie(struct uthr *td)
-// {
-// 	uthr_assert_SIGPROF_blocked();
-// 	assert(td->state == UTHR_RUNNABLE);
-// 	if (td->joiner != NULL) {
-// 		assert(!td->detached);
-//                 assert(td->joiner->state == UTHR_JOINING);
-// 	}
+static void
+uthr_to_zombie(struct uthr *td)
+{
+	uthr_assert_SIGPROF_blocked();
+	assert(td->state == UTHR_RUNNABLE);
+	struct uthr *selected_thread = runq.next;
+	struct uthr *prev = NULL;
 
-// 	// (Your code goes here.)
-// }
+	// Remove the thread from the run queue
+	while (selected_thread != NULL) {
+	    if (selected_thread == td) {
+	        if (prev == NULL) {
+	            runq.next = runq.next->next;
+		    break;
+	        }
+
+	        else if (selected_thread->next == NULL) {
+		    prev->next = NULL;
+		    break;
+	        }
+
+		else if (prev != NULL && selected_thread->next != NULL) {
+		    prev->next = selected_thread->next;
+		    selected_thread->prev = prev;
+		    break;
+		}
+	    }
+
+            prev = selected_thread;
+	    selected_thread = selected_thread->next;
+	}
+
+	td->state = UTHR_ZOMBIE;
+}
 
 /**
  * Frees the resources associated with a thread and transitions it to the free
@@ -224,7 +246,7 @@ uthr_start(int tidx)
 	selected_thread->ret_val  = selected_thread->start_routine(selected_thread->argp);
 	
 	// Transition the thread into the Zombie state
-	selected_thread->state = UTHR_ZOMBIE;
+	uthr_to_zombie(selected_thread);
 
 	// Switch back into the scheduler
 	if (swapcontext(&selected_thread->uctx, &sched_uctx) != 0) {
