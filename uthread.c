@@ -103,9 +103,7 @@ void setup_SIGPROF_timer(void);
 static void
 uthr_assert_SIGPROF_blocked(void)
 {
-        if (sigismember(&SIGPROF_set, SIGPROF)) {
-            // printf("nothing\n");
-        } else {
+        if (!sigismember(&SIGPROF_set, SIGPROF)) {
             uthr_exit_errno("SIGPROF is not blocked. \n");
         }   
 }
@@ -113,8 +111,6 @@ uthr_assert_SIGPROF_blocked(void)
 void
 uthr_block_SIGPROF(sigset_t *old_setp)
 {
-	(void)old_setp;
-        //printf("Blocking SIGPROF \n");
 	if (sigprocmask(SIG_BLOCK, &SIGPROF_set, old_setp) == -1) {
             uthr_exit_errno("sigprocmask");
         }
@@ -124,7 +120,6 @@ uthr_block_SIGPROF(sigset_t *old_setp)
 void 
 uthr_unblock_SIGPROF(sigset_t *old_setp)
 {
-       (void)old_setp;
        if (sigprocmask(SIG_UNBLOCK, &SIGPROF_set, old_setp) == -1) {
            uthr_exit_errno("sigprocmask");
        }
@@ -133,14 +128,12 @@ uthr_unblock_SIGPROF(sigset_t *old_setp)
 void
 uthr_set_sigmask(const sigset_t *setp)
 {
-	// (Your code goes here.)
 	(void) setp;
 }
 
 void *
 uthr_intern_malloc(size_t size)
 {
-        printf("uthr_intern_malloc \n");
 	uthr_assert_SIGPROF_blocked();
 	return (mallocp(size));
 }
@@ -216,7 +209,6 @@ uthr_start(int tidx)
  	uthr_assert_SIGPROF_blocked();
  	
 	struct uthr *selected_thread = &uthr_array[tidx];
-	printf("UTHR_START: executing thread ID of %d\n", selected_thread->uthr_id);        
 	assert(selected_thread->state == UTHR_RUNNABLE);
 
  	/*
@@ -229,10 +221,7 @@ uthr_start(int tidx)
 	assert(sigismember(&old_set, SIGPROF));
 		
 	// Execute the specified thread
-	printf("Now executing thread function in uthr_start \n");
 	selected_thread->ret_val  = selected_thread->start_routine(selected_thread->argp);
-		// Resets the current thread back to the preivous
-	printf("FINISHED EXECUTING\n");
 	
 	// Transition the thread into the Zombie state
 	selected_thread->state = UTHR_ZOMBIE;
@@ -247,8 +236,6 @@ int
 pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
     void *(*start_routine)(void *restrict), void *restrict argp)
 {
-        printf("Entered pthread_create function \n");     
-
         if (attrp != NULL) {
             errno = ENOTSUP;
             return ENOTSUP;
@@ -259,7 +246,6 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
 	for (volatile long i = 0; i < NUTHR; i++) {
 	    if (uthr_array[i].state == UTHR_FREE) {
                 td = &uthr_array[i];
-                printf("%ld\n", i);
 		break;
 	     }
         }
@@ -279,7 +265,6 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
         td->uthr_id = (int)(td - uthr_array);
 	td->stack_base = uthr_intern_malloc(UTHR_STACK_SIZE);
         if (td->stack_base == NULL) {
-            printf("Unable to allocate for the td stack. Exiting program \n");
             errno = ENOMEM;
 	    return -1;
 	}
@@ -320,14 +305,12 @@ pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attrp,
        // Return the thread ID
        *tidp = td - uthr_array;
 
-        printf("Created a thread with ID of %ld \n", *tidp); 
 	return 0;
 }
 
 int
 pthread_detach(pthread_t tid)
 {
-	printf("Inside the pthread_detach function\n");
         if ((int)tid < 0 || tid >= NUTHR || uthr_array[tid].state == UTHR_FREE) {
             errno = ESRCH;
             return ESRCH;
@@ -363,8 +346,6 @@ pthread_self(void)
 void
 pthread_exit(void *retval)
 {
-	printf("PTHREAD_EXIT function\n");
-
 	// Set the return value in the current threadread's return value
 	curr_uthr->ret_val = retval;
 	
@@ -383,7 +364,6 @@ pthread_exit(void *retval)
 	 * returns, the compiler requires us to ensure that the
 	 * function's implementation never returns.
 	 */
-        printf("BEFORE PTHREAD EXIT FOR LOOP\n");
 	for (;;);
 }
 
@@ -391,8 +371,6 @@ pthread_exit(void *retval)
 void 
 add_thread(struct uthr *td, struct uthr *queue) 
 {
-        printf("ADD_THREAD function \n");
-	
 	struct uthr *itr = queue;
 	while (itr != NULL) {
 		itr = itr->next;
@@ -427,7 +405,6 @@ int
 pthread_join(pthread_t tid, void **retval)
 {
         if ((int) tid < 0 || tid >= NUTHR) {
-            printf("ERROR WITH THE THREAD ID VALUE of %d\n", (int)tid);
 	    errno = ESRCH;
             return ESRCH;
         }
@@ -437,27 +414,12 @@ pthread_join(pthread_t tid, void **retval)
 	}
 
 	struct uthr *td = &uthr_array[tid];
-	printf("PTHREAD_JOIN: joining target thread ID %d and curr_uthr ID is %d\n", td->uthr_id, curr_uthr->uthr_id);
 
         if (td->joiner != NULL) {
 	    return ESRCH;
 	}
 	
-	if (retval == NULL) {
-	    printf("INSIDE 1st THREAD\n");
-	}
-	else{
-	    printf("INSIDE 2nd THREAD\n");
-	}
-
         if (td->state == UTHR_FREE) {
-            if (retval != NULL) {
-	        printf("RETVAL IS NOT NULL\n");
-            } 
-	    else {
-                printf("RETVAL IS NULL\n");
-            }
-	    printf("THREAD IS ALREADY FREE\n");
             return EINVAL;
 	}
 
@@ -483,8 +445,6 @@ pthread_join(pthread_t tid, void **retval)
 		uthr_exit_errno("Error switching to the scheduler context \n");
 	}         
 
-	printf("End of PTHREAD_JOIN freeing target thread \n");          	
-
 	uthr_to_free(td);
 	uthr_intern_free(td->stack_base);
 
@@ -500,7 +460,6 @@ pthread_join(pthread_t tid, void **retval)
 int
 sched_yield(void)
 {
-	printf("Inside Sched_yeild function\n");
 	assert(curr_uthr->state == UTHR_RUNNABLE);
 	
 	// Grab the first thread in the queue
@@ -508,7 +467,6 @@ sched_yield(void)
 	
 	// Logic if there is another thread in the queue
 	if (current_run_thread->next != NULL) {
-                printf("move the current thread to end of queue\n");	
 		// Move the current thread to the end of the queue
 		struct uthr* end = runq.next;
 		while (end->next != NULL) {
@@ -528,7 +486,6 @@ sched_yield(void)
 		uthr_exit_errno("Error switching the scheduler context\n");
 	}
 	
-	printf("Logic after switching from the sched_yiedld context \n");
 	return (0);
 }
 
@@ -609,22 +566,13 @@ static void
 uthr_scheduler(void)
 {
  	uthr_assert_SIGPROF_blocked();
-	printf("UTHR_SCHEDULER function\n");
 
 	for (;;) {
-		printf("INSIDE THE FOR LOOP\n");
-		struct uthr *queue = runq.next;
-		while (queue != NULL) {
-			printf("QUEUE ID is %d \n ", queue->uthr_id);
-			queue = queue->next;
-		}
-
 
 		if (runq.next != NULL) {
 			// Selects the current thread in RUNNABLE queue
 			struct uthr *selected_thread = runq.next;
 
-		        printf("\nscheduler picked thread %d\n", selected_thread->uthr_id);	
 			runq.next = selected_thread->next;
 			selected_thread->next = NULL;
 			selected_thread->prev = NULL;	
@@ -635,10 +583,9 @@ uthr_scheduler(void)
 				uthr_exit_errno("Error switching context to the thread\n");
 			}
                         
-                        printf("REAPING the zombie Thread if there is one \n");
 			if (selected_thread->state == UTHR_ZOMBIE){
-                                printf("THREAD IS A ZOMBIE\n");			
-				// Appends the joining thread to the front of the queue
+
+                                // Appends the joining thread to the front of the queue
 				if (selected_thread->joiner != NULL) {
 					struct uthr* joined_thread = selected_thread->joiner;
 					joined_thread->state= UTHR_RUNNABLE;
@@ -654,13 +601,7 @@ uthr_scheduler(void)
 				
 			
 				struct uthr *queue = runq.next;
-				printf("FINDS THE NEXT THREAD\n");
 				curr_uthr = &uthr_array[0];
-
-                                while (queue != NULL) {
-                                    printf("ZOMBIE is %d and curretnt thread ID is  %d\n ", queue->uthr_id, curr_uthr->uthr_id);
-                                    queue = queue->next;
-  				}
 
 				if (selected_thread->detached) {
 					uthr_to_free(selected_thread);					
@@ -674,7 +615,6 @@ uthr_scheduler(void)
                                 uthr_exit_errno("Error switching context to the current thread\n");
                         }
 
-			printf("NO MORE THREADS IN THE FUNCTION \n");
 			break;
 		}
  	}
@@ -693,7 +633,6 @@ static void
 uthr_timer_handler(int signum)
 {
 	(void)signum;
-	printf("Inside the timer handler");
 	//int save_errno = errno;
 	//if (swapcontext(&curr_uthr->uctx, &sched_uctx) == -1)
 	//	uthr_exit_errno("swapcontext");
@@ -702,7 +641,6 @@ uthr_timer_handler(int signum)
 
 void setup_SIGPROF_timer(void)
 {
-	printf("Setting up SIGPROF timer\n");
 	struct sigaction sa = {
 		.sa_handler = uthr_timer_handler,
 		.sa_flags = SA_RESTART
@@ -745,7 +683,6 @@ static void
 uthr_init(void)
 {
 	static char sched_stack[UTHR_STACK_SIZE];
-	printf("uthr_init function \n");
 
 	/*
 	 * SIGPROF_set must be initialized before calling uthr_lookup_symbol().
@@ -804,9 +741,7 @@ uthr_init(void)
 	/*
 	 * Set up the SIGPROF signal handler.
 	 */
-	setup_SIGPROF_timer();	
-
-        printf("end of uthr_init function \n");
+	setup_SIGPROF_timer();
 }
 
 
@@ -819,8 +754,7 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
 	 */
         uthr_block_SIGPROF(&SIGPROF_set);
         uthr_assert_SIGPROF_blocked();
-        
-        printf("uthr look up \n");	 
+
 	/*
 	 * A concurrent lookup by another thread may have already set the
 	 * address.
@@ -831,7 +765,7 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
             */
 	   *addrp = dlsym(RTLD_NEXT, symbol);
 	   if (*addrp == NULL) {
-		printf("failed to find symbol %s: %s\n", symbol,
+               uthr_exit_errno("failed to find symbol %s: %s\n", symbol,
 		    dlerror());
 	   }
         
@@ -839,7 +773,6 @@ uthr_lookup_symbol(void **addrp, const char *symbol)
 	    uthr_unblock_SIGPROF(&SIGPROF_set);
 	}
         
-        printf("uthr look up symbol");
         // uthr_unblock_SIGPROF(&SIGPROF_set);
 }
 
